@@ -46,6 +46,23 @@ def cmd_find(term):
         sys.exit(f"No entries matching '{term}'")
 
 
+def cmd_list():
+    sections = parse_sections(read_lines())
+    found = False
+    for heading, content in sections:
+        subs = parse_subsections(content)
+        if not subs:
+            continue
+        if found:
+            print()
+        print(heading)
+        for title, _ in subs:
+            print(title)
+        found = True
+    if not found:
+        print("No entries")
+
+
 def cmd_recent(n_days):
     cutoff = datetime.now() - timedelta(days=n_days)
 
