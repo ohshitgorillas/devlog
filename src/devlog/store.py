@@ -2,6 +2,8 @@ import contextlib
 import fcntl
 import os
 import re
+import subprocess
+import sys
 import tempfile
 
 DEVLOG = os.environ.get("DEVLOG_FILE") or os.path.expanduser("~/.devlog/devlog.md")
@@ -28,6 +30,41 @@ def write_lock():
 def read_lines():
     with open(DEVLOG) as f:
         return f.readlines()
+
+
+def _git(repo, *args, check=True):
+    return subprocess.run(
+        ["git", "-C", repo, *args],
+        check=check,
+        capture_output=True,
+        text=True,
+    )
+
+
+def init_repo(repo):
+    """Init a git repo at `repo` if absent, and ensure a usable identity
+    (local config only, never touching global)."""
+    if os.path.isdir(os.path.join(repo, ".git")):
+        return
+    _git(repo, "init", "-q", "-b", "main")
+    if not _git(repo, "config", "user.email", check=False).stdout.strip():
+        _git(repo, "config", "user.email", "devlog@localhost")
+        _git(repo, "config", "user.name", "devlog")
+
+
+def git_snapshot(message):
+    """Stage everything and commit. Best-effort: a failure here doesn't
+    abort the surrounding write op (the data is already saved). No-op if
+    nothing changed."""
+    repo = os.path.dirname(DEVLOG)
+    try:
+        init_repo(repo)
+        _git(repo, "add", "-A")
+        diff = _git(repo, "diff", "--cached", "--quiet", check=False)
+        if diff.returncode != 0:
+            _git(repo, "commit", "-q", "-m", message)
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"warning: git snapshot failed: {e}", file=sys.stderr)
 
 
 def write_lines(lines):

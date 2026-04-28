@@ -9,12 +9,20 @@ from .dates import parse_date_arg, today_heading
 from .store import (
     DATE_PAT,
     SUB_PAT,
+    TITLE_PAT,
     find_last_subsection,
     find_subsection,
+    git_snapshot,
     read_lines,
     write_lines,
     write_lock,
 )
+
+
+def _title_text(title_line):
+    """Extract bare title from a '### [HH:MM] Title' line."""
+    m = TITLE_PAT.match(title_line.rstrip())
+    return m.group(1) if m else title_line.rstrip()
 
 
 def _resolve_target(lines, date_arg, title):
@@ -77,6 +85,7 @@ def insert_entry(title, body):
                 lines = lines[:title_line + 1] + ["\n"] + section + lines[title_line + 1:]
 
         write_lines(lines)
+        git_snapshot(f"add: {title}")
     print(f"Entry added under {today}")
 
 
@@ -109,6 +118,7 @@ def cmd_edit(date_arg=None, title=None):
 
         lines = lines[:sub_start] + new_lines + lines[sub_end:]
         write_lines(lines)
+        git_snapshot(f"edit: {_title_text(new_lines[0])}")
     print(f"Edited: {new_lines[0].rstrip()}")
 
 
@@ -123,6 +133,7 @@ def cmd_amend(new_text, date_arg=None, title=None):
         new_body.append("\n")
         lines = lines[:sub_start] + [title_line] + new_body + lines[sub_end:]
         write_lines(lines)
+        git_snapshot(f"amend: {_title_text(title_line)}")
     print(f"Amended: {title_line.rstrip()}")
 
 
@@ -140,6 +151,7 @@ def cmd_addend(new_text, date_arg=None, title=None):
         addend.append("\n")
         lines = lines[:insert_pos] + addend + lines[insert_pos:]
         write_lines(lines)
+        git_snapshot(f"addend: {_title_text(title_line)}")
     print(f"Added to: {title_line.rstrip()}")
 
 
@@ -198,4 +210,5 @@ def _rm_impl(target_heading, title, dry_run):
         return
 
     write_lines(new_lines)
+    git_snapshot(f"rm: {title}")
     print(f"Removed '{title}' from {target_heading}")
