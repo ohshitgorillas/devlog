@@ -1,107 +1,63 @@
-import os
-import sys
+import argparse
 
 from .read import cmd_date, cmd_find, cmd_recent
-from .store import DEVLOG
 from .write import cmd_addend, cmd_amend, cmd_edit_last, cmd_rm, insert_entry
 
-HELP = """devlog — append/read/edit ~/devlog.md
 
-Usage:
-  devlog                              open in $EDITOR (vim)
-  devlog --title T --entry BODY       add new subsection under today
-  devlog --amend BODY                 replace body of newest subsection
-  devlog --addend BODY                append paragraph to bottom of newest subsection
-  devlog --edit-last                  open newest subsection in $EDITOR
-  devlog --rm --date YYYYMMDD --title T   delete named subsection
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="devlog",
+        description="Append/read/edit ~/devlog.md",
+    )
+    sub = parser.add_subparsers(dest="cmd", metavar="COMMAND")
 
-Read:
-  devlog --date YYYYMMDD | MMDD       full day section
-  devlog --find TERM                  matching subsections (case-insensitive)
-  devlog --recent [N]                 last N days (default 7)
+    p_add = sub.add_parser("add", help="add new subsection under today")
+    p_add.add_argument("-t", "--title", required=True)
+    p_add.add_argument("-e", "--entry", required=True, help="body text")
 
-Flags:
-  -t/--title  -e/--entry  -d/--date  -f/--find  -r/--recent
-  --edit-last  --amend  --addend  --rm  -h/--help
-"""
+    p_show = sub.add_parser("show", help="print full day section")
+    p_show.add_argument("date", metavar="DATE", help="YYYYMMDD or MMDD")
 
+    p_find = sub.add_parser("find", help="search subsections (case-insensitive)")
+    p_find.add_argument("term")
 
-def cmd_help():
-    print(HELP, end="")
+    p_recent = sub.add_parser("recent", help="last N days (default 7)")
+    p_recent.add_argument("days", nargs="?", type=int, default=7)
+
+    sub.add_parser("edit", help="open newest subsection in $EDITOR")
+
+    p_amend = sub.add_parser("amend", help="replace body of newest subsection")
+    p_amend.add_argument("body")
+
+    p_addend = sub.add_parser("addend", help="append paragraph to bottom of newest subsection")
+    p_addend.add_argument("body")
+
+    p_rm = sub.add_parser("rm", help="delete named subsection")
+    p_rm.add_argument("-d", "--date", required=True)
+    p_rm.add_argument("-t", "--title", required=True)
+
+    return parser
 
 
 def main():
-    args = sys.argv[1:]
+    parser = build_parser()
+    args = parser.parse_args()
 
-    if not args:
-        os.execvp("vim", ["vim", DEVLOG])
+    if args.cmd is None:
+        parser.print_help()
         return
 
-    title = body = date_arg = amend_text = addend_text = None
-    edit_last = rm_flag = False
-    i = 0
-    while i < len(args):
-        a = args[i]
-        if a in ("--help", "-h"):
-            cmd_help()
-            return
-        elif a in ("--title", "-t") and i + 1 < len(args):
-            title = args[i + 1]
-            i += 2
-        elif a in ("--entry", "-e") and i + 1 < len(args):
-            body = args[i + 1]
-            i += 2
-        elif a in ("--date", "-d") and i + 1 < len(args):
-            date_arg = args[i + 1]
-            i += 2
-        elif a in ("--find", "-f") and i + 1 < len(args):
-            cmd_find(args[i + 1])
-            return
-        elif a in ("--recent", "-r"):
-            n = 7
-            if i + 1 < len(args) and args[i + 1].isdigit():
-                n = int(args[i + 1])
-                i += 2
-            else:
-                i += 1
-            cmd_recent(n)
-            return
-        elif a == "--edit-last":
-            edit_last = True
-            i += 1
-        elif a == "--amend" and i + 1 < len(args):
-            amend_text = args[i + 1]
-            i += 2
-        elif a == "--addend" and i + 1 < len(args):
-            addend_text = args[i + 1]
-            i += 2
-        elif a == "--rm":
-            rm_flag = True
-            i += 1
-        else:
-            sys.exit(f"Unknown argument: {a}")
-
-    if edit_last:
-        cmd_edit_last()
-        return
-    if amend_text is not None:
-        cmd_amend(amend_text)
-        return
-    if addend_text is not None:
-        cmd_addend(addend_text)
-        return
-    if rm_flag:
-        if not date_arg or not title:
-            sys.exit("--rm requires --date and --title")
-        cmd_rm(date_arg, title)
-        return
-    if date_arg:
-        cmd_date(date_arg)
-        return
-    if not title and not body:
-        sys.exit("Usage: devlog [--title TITLE] [--entry TEXT]")
-
-    insert_entry(title, body)
+    dispatch = {
+        "add": lambda: insert_entry(args.title, args.entry),
+        "show": lambda: cmd_date(args.date),
+        "find": lambda: cmd_find(args.term),
+        "recent": lambda: cmd_recent(args.days),
+        "edit": cmd_edit_last,
+        "amend": lambda: cmd_amend(args.body),
+        "addend": lambda: cmd_addend(args.body),
+        "rm": lambda: cmd_rm(args.date, args.title),
+    }
+    dispatch[args.cmd]()
 
 
 if __name__ == "__main__":
