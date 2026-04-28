@@ -2,7 +2,16 @@ import argparse
 import sys
 
 from .migrate import migrate_if_needed
-from .read import cmd_date, cmd_exists, cmd_find, cmd_last, cmd_list, cmd_recent
+from .read import (
+    cmd_date,
+    cmd_diff,
+    cmd_exists,
+    cmd_find,
+    cmd_last,
+    cmd_list,
+    cmd_log,
+    cmd_recent,
+)
 from .store import capture_manual_edits
 from .write import (
     cmd_addend,
@@ -80,6 +89,12 @@ def build_parser():
     p_addend.add_argument("-d", "--date", help="target a specific subsection")
     p_addend.add_argument("-t", "--title", help="target a specific subsection")
 
+    p_log = sub.add_parser("log", help="show data-repo commit history")
+    p_log.add_argument("n", nargs="?", type=int, default=20, help="number of commits (default 20)")
+
+    p_diff = sub.add_parser("diff", help="show data-repo commit diff")
+    p_diff.add_argument("ref", nargs="?", default="HEAD", help="git ref (default HEAD)")
+
     sub.add_parser("undo", help="revert last commit in the data repo")
 
     p_retitle = sub.add_parser("retitle", help="rename existing subsection")
@@ -122,6 +137,8 @@ def main():
         "edit": lambda: cmd_edit(args.date, args.title),
         "amend": lambda: cmd_amend(_resolve_body(args.body), args.date, args.title),
         "addend": lambda: cmd_addend(_resolve_body(args.body), args.date, args.title),
+        "log": lambda: cmd_log(args.n),
+        "diff": lambda: cmd_diff(args.ref),
         "undo": cmd_undo,
         "retitle": lambda: cmd_retitle(args.date, args.title, args.new_title),
         "rm": lambda: cmd_rm(args.date, args.title, args.dry_run),

@@ -1,8 +1,11 @@
+import os
+import subprocess
 import sys
 from datetime import datetime, timedelta
 
 from .dates import parse_date_arg, parse_date_heading
 from .store import (
+    DEVLOG,
     find_last_subsection,
     find_subsection,
     parse_sections,
@@ -50,6 +53,29 @@ def cmd_find(term):
 
     if not found:
         sys.exit(f"No entries matching '{term}'")
+
+
+def _ensure_repo():
+    repo = os.path.dirname(DEVLOG)
+    if not os.path.isdir(os.path.join(repo, ".git")):
+        sys.exit("No git repo at devlog data dir")
+    return repo
+
+
+def cmd_log(n=20):
+    repo = _ensure_repo()
+    subprocess.run(
+        ["git", "-C", repo, "log", f"-{n}", "--oneline"],
+        check=True,
+    )
+
+
+def cmd_diff(ref="HEAD"):
+    repo = _ensure_repo()
+    subprocess.run(
+        ["git", "-C", repo, "show", ref],
+        check=True,
+    )
 
 
 def cmd_exists(date_arg, title):
