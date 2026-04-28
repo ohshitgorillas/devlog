@@ -1,5 +1,7 @@
 """Filesystem and git operations on the devlog data file."""
 
+from __future__ import annotations
+
 import contextlib
 import fcntl
 import os
@@ -122,8 +124,8 @@ def write_lines(lines):
 def parse_sections(lines):
     """Return list of (date_heading_line, [content_lines]) for each date section."""
     sections = []
-    current_heading = None
-    current_lines = []
+    current_heading: str | None = None
+    current_lines: list[str] = []
     for line in lines:
         if DATE_PAT.match(line.rstrip()):
             if current_heading is not None:
@@ -140,8 +142,8 @@ def parse_sections(lines):
 def parse_subsections(content_lines):
     """Split section content into list of (title_line, [body_lines])."""
     subs = []
-    current_title = None
-    current_body = []
+    current_title: str | None = None
+    current_body: list[str] = []
     for line in content_lines:
         if SUB_PAT.match(line):
             if current_title is not None:
@@ -184,7 +186,7 @@ def _title_matches(title):
 
     def predicate(line):
         m = TITLE_PAT.match(line.rstrip())
-        return bool(m) and m.group(1) == title
+        return m is not None and m.group(1) == title
 
     return predicate
 

@@ -21,6 +21,7 @@ src = ["src"]
 [tool.mypy]
 python_version = "3.9"
 files = ["src/devlog"]
+check_untyped_defs = true
 
 [tool.pylint.main]
 fail-under = 10.0
