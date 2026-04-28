@@ -2,7 +2,13 @@ import sys
 from datetime import datetime, timedelta
 
 from .dates import parse_date_arg, parse_date_heading
-from .store import find_last_subsection, parse_sections, parse_subsections, read_lines
+from .store import (
+    find_last_subsection,
+    find_subsection,
+    parse_sections,
+    parse_subsections,
+    read_lines,
+)
 
 
 def cmd_date(arg):
@@ -44,6 +50,14 @@ def cmd_find(term):
 
     if not found:
         sys.exit(f"No entries matching '{term}'")
+
+
+def cmd_exists(date_arg, title):
+    target = parse_date_arg(date_arg)
+    target_heading = target.strftime("## %B %-d, %Y")
+    lines = read_lines()
+    if find_subsection(lines, target_heading, title) is None:
+        sys.exit(1)
 
 
 def cmd_last():

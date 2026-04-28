@@ -1,6 +1,6 @@
 import argparse
 
-from .read import cmd_date, cmd_find, cmd_last, cmd_list, cmd_recent
+from .read import cmd_date, cmd_exists, cmd_find, cmd_last, cmd_list, cmd_recent
 from .write import cmd_addend, cmd_amend, cmd_edit_last, cmd_rm, insert_entry
 
 
@@ -27,6 +27,13 @@ def build_parser():
     sub.add_parser("list", help="print dates + titles only (no bodies)")
 
     sub.add_parser("last", help="print newest subsection")
+
+    p_exists = sub.add_parser(
+        "exists",
+        help="exit 0 if subsection exists, 1 otherwise (no output)",
+    )
+    p_exists.add_argument("-d", "--date", required=True)
+    p_exists.add_argument("-t", "--title", required=True)
 
     sub.add_parser("edit", help="open newest subsection in $EDITOR")
 
@@ -58,6 +65,7 @@ def main():
         "recent": lambda: cmd_recent(args.days),
         "list": cmd_list,
         "last": cmd_last,
+        "exists": lambda: cmd_exists(args.date, args.title),
         "edit": cmd_edit_last,
         "amend": lambda: cmd_amend(args.body),
         "addend": lambda: cmd_addend(args.body),
