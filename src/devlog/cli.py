@@ -69,6 +69,10 @@ def build_parser():
     p_rm = sub.add_parser("rm", help="delete named subsection")
     p_rm.add_argument("-d", "--date", required=True)
     p_rm.add_argument("-t", "--title", required=True)
+    p_rm.add_argument(
+        "-n", "--dry-run", action="store_true",
+        help="print what would be removed without writing",
+    )
 
     return parser
 
@@ -92,7 +96,7 @@ def main():
         "edit": lambda: cmd_edit(args.date, args.title),
         "amend": lambda: cmd_amend(_resolve_body(args.body), args.date, args.title),
         "addend": lambda: cmd_addend(_resolve_body(args.body), args.date, args.title),
-        "rm": lambda: cmd_rm(args.date, args.title),
+        "rm": lambda: cmd_rm(args.date, args.title, args.dry_run),
     }
     dispatch[args.cmd]()
 

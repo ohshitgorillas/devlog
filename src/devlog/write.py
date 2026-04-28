@@ -127,7 +127,7 @@ def cmd_addend(new_text, date_arg=None, title=None):
     print(f"Added to: {title_line.rstrip()}")
 
 
-def cmd_rm(date_arg, title):
+def cmd_rm(date_arg, title, dry_run=False):
     target = parse_date_arg(date_arg)
     target_heading = target.strftime("## %B %-d, %Y")
 
@@ -159,12 +159,20 @@ def cmd_rm(date_arg, title):
             sub_end = i
             break
 
-    lines = lines[:sub_start] + lines[sub_end:]
-
+    new_lines = lines[:sub_start] + lines[sub_end:]
     new_section_end = section_end - (sub_end - sub_start)
-    has_sub = any(SUB_PAT.match(lines[i]) for i in range(date_idx + 1, new_section_end))
-    if not has_sub:
-        lines = lines[:date_idx] + lines[new_section_end:]
+    has_sub = any(SUB_PAT.match(new_lines[i]) for i in range(date_idx + 1, new_section_end))
+    drops_section = not has_sub
+    if drops_section:
+        new_lines = new_lines[:date_idx] + new_lines[new_section_end:]
 
-    write_lines(lines)
+    if dry_run:
+        print(f"Would remove '{title}' from {target_heading}")
+        if drops_section:
+            print(f"Would drop empty date section {target_heading}")
+        print("--- subsection content ---")
+        print("".join(lines[sub_start:sub_end]).rstrip())
+        return
+
+    write_lines(new_lines)
     print(f"Removed '{title}' from {target_heading}")
