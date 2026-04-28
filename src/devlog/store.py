@@ -155,6 +155,40 @@ def parse_subsections(content_lines):
     return subs
 
 
+def find_section_end(lines, date_idx):
+    """Return the index of the next date heading after `date_idx`, or len(lines)."""
+    for i in range(date_idx + 1, len(lines)):
+        if DATE_PAT.match(lines[i].rstrip()):
+            return i
+    return len(lines)
+
+
+def _find_sub_start(lines, lo, hi, matches):
+    """Return the first index in [lo, hi) whose subsection title satisfies `matches`."""
+    for i in range(lo, hi):
+        if matches(lines[i]):
+            return i
+    return None
+
+
+def _find_sub_end(lines, sub_start, section_end):
+    """Return the start index of the next subsection after `sub_start`, capped at section_end."""
+    for i in range(sub_start + 1, section_end):
+        if SUB_PAT.match(lines[i]):
+            return i
+    return section_end
+
+
+def _title_matches(title):
+    """Return a predicate matching a '### [HH:MM] Title' line whose title equals `title`."""
+
+    def predicate(line):
+        m = TITLE_PAT.match(line.rstrip())
+        return bool(m) and m.group(1) == title
+
+    return predicate
+
+
 def find_subsection(lines, target_heading, title):
     """Return (date_idx, sub_start, sub_end) for a subsection matching
     `title` under `target_heading` (e.g. '## April 27, 2026'), or None."""
@@ -163,24 +197,11 @@ def find_subsection(lines, target_heading, title):
     )
     if date_idx is None:
         return None
-    section_end = len(lines)
-    for i in range(date_idx + 1, len(lines)):
-        if DATE_PAT.match(lines[i].rstrip()):
-            section_end = i
-            break
-    sub_start = None
-    for i in range(date_idx + 1, section_end):
-        m = TITLE_PAT.match(lines[i].rstrip())
-        if m and m.group(1) == title:
-            sub_start = i
-            break
+    section_end = find_section_end(lines, date_idx)
+    sub_start = _find_sub_start(lines, date_idx + 1, section_end, _title_matches(title))
     if sub_start is None:
         return None
-    sub_end = section_end
-    for i in range(sub_start + 1, section_end):
-        if SUB_PAT.match(lines[i]):
-            sub_end = i
-            break
+    sub_end = _find_sub_end(lines, sub_start, section_end)
     return (date_idx, sub_start, sub_end)
 
 
@@ -191,21 +212,11 @@ def find_last_subsection(lines):
     )
     if date_idx is None:
         return None
-    section_end = len(lines)
-    for i in range(date_idx + 1, len(lines)):
-        if DATE_PAT.match(lines[i].rstrip()):
-            section_end = i
-            break
-    sub_start = None
-    for i in range(date_idx + 1, section_end):
-        if SUB_PAT.match(lines[i]):
-            sub_start = i
-            break
+    section_end = find_section_end(lines, date_idx)
+    sub_start = _find_sub_start(
+        lines, date_idx + 1, section_end, lambda line: bool(SUB_PAT.match(line))
+    )
     if sub_start is None:
         return None
-    sub_end = section_end
-    for i in range(sub_start + 1, section_end):
-        if SUB_PAT.match(lines[i]):
-            sub_end = i
-            break
+    sub_end = _find_sub_end(lines, sub_start, section_end)
     return (date_idx, sub_start, sub_end)

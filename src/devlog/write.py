@@ -14,6 +14,7 @@ from .store import (
     SUB_PAT,
     TITLE_PAT,
     find_last_subsection,
+    find_section_end,
     find_subsection,
     git_snapshot,
     read_lines,
@@ -239,12 +240,7 @@ def _rm_impl(target_heading, title, dry_run):
     if found is None:
         sys.exit(f"No subsection '{title}' under {target_heading}")
     date_idx, sub_start, sub_end = found
-
-    section_end = len(lines)
-    for i in range(date_idx + 1, len(lines)):
-        if DATE_PAT.match(lines[i].rstrip()):
-            section_end = i
-            break
+    section_end = find_section_end(lines, date_idx)
 
     new_lines = lines[:sub_start] + lines[sub_end:]
     new_section_end = section_end - (sub_end - sub_start)
