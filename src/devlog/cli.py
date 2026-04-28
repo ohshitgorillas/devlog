@@ -34,14 +34,8 @@ def _resolve_body(arg):
     return arg
 
 
-def build_parser():
-    """Construct the argparse top-level parser with every subcommand attached."""
-    parser = argparse.ArgumentParser(
-        prog="devlog",
-        description="Append/read/edit ~/devlog.md",
-    )
-    sub = parser.add_subparsers(dest="cmd", metavar="COMMAND")
-
+def _add_write_subparsers(sub):
+    """Attach the add/edit/amend/addend/retitle/rm subparsers to `sub`."""
     p_add = sub.add_parser("add", help="add new subsection under today")
     p_add.add_argument("-t", "--title", required=True)
     p_add.add_argument(
@@ -57,6 +51,44 @@ def build_parser():
         help="append author name to title (env: DEVLOG_NAME)",
     )
 
+    p_edit = sub.add_parser(
+        "edit", help="open subsection in $EDITOR (newest by default)"
+    )
+    p_edit.add_argument("-d", "--date", help="target a specific subsection")
+    p_edit.add_argument("-t", "--title", help="target a specific subsection")
+
+    p_amend = sub.add_parser(
+        "amend", help="replace body of subsection (newest by default)"
+    )
+    p_amend.add_argument("body", help="new body (use `-` to read from stdin)")
+    p_amend.add_argument("-d", "--date", help="target a specific subsection")
+    p_amend.add_argument("-t", "--title", help="target a specific subsection")
+
+    p_addend = sub.add_parser(
+        "addend", help="append paragraph to subsection (newest by default)"
+    )
+    p_addend.add_argument("body", help="paragraph (use `-` to read from stdin)")
+    p_addend.add_argument("-d", "--date", help="target a specific subsection")
+    p_addend.add_argument("-t", "--title", help="target a specific subsection")
+
+    p_retitle = sub.add_parser("retitle", help="rename existing subsection")
+    p_retitle.add_argument("-d", "--date", required=True)
+    p_retitle.add_argument("-t", "--title", required=True, help="current title")
+    p_retitle.add_argument("--to", required=True, help="new title", dest="new_title")
+
+    p_rm = sub.add_parser("rm", help="delete named subsection")
+    p_rm.add_argument("-d", "--date", required=True)
+    p_rm.add_argument("-t", "--title", required=True)
+    p_rm.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        help="print what would be removed without writing",
+    )
+
+
+def _add_read_subparsers(sub):
+    """Attach the show/find/recent/list/last/exists subparsers to `sub`."""
     p_show = sub.add_parser("show", help="print full day section")
     p_show.add_argument("date", metavar="DATE", help="YYYYMMDD or MMDD")
     p_show.add_argument("--json", action="store_true", dest="json_out")
@@ -82,26 +114,9 @@ def build_parser():
     p_exists.add_argument("-d", "--date", required=True)
     p_exists.add_argument("-t", "--title", required=True)
 
-    p_edit = sub.add_parser(
-        "edit", help="open subsection in $EDITOR (newest by default)"
-    )
-    p_edit.add_argument("-d", "--date", help="target a specific subsection")
-    p_edit.add_argument("-t", "--title", help="target a specific subsection")
 
-    p_amend = sub.add_parser(
-        "amend", help="replace body of subsection (newest by default)"
-    )
-    p_amend.add_argument("body", help="new body (use `-` to read from stdin)")
-    p_amend.add_argument("-d", "--date", help="target a specific subsection")
-    p_amend.add_argument("-t", "--title", help="target a specific subsection")
-
-    p_addend = sub.add_parser(
-        "addend", help="append paragraph to subsection (newest by default)"
-    )
-    p_addend.add_argument("body", help="paragraph (use `-` to read from stdin)")
-    p_addend.add_argument("-d", "--date", help="target a specific subsection")
-    p_addend.add_argument("-t", "--title", help="target a specific subsection")
-
+def _add_repo_subparsers(sub):
+    """Attach the log/diff/undo subparsers (data-repo wrappers) to `sub`."""
     p_log = sub.add_parser("log", help="show data-repo commit history")
     p_log.add_argument(
         "n", nargs="?", type=int, default=20, help="number of commits (default 20)"
@@ -112,21 +127,17 @@ def build_parser():
 
     sub.add_parser("undo", help="revert last commit in the data repo")
 
-    p_retitle = sub.add_parser("retitle", help="rename existing subsection")
-    p_retitle.add_argument("-d", "--date", required=True)
-    p_retitle.add_argument("-t", "--title", required=True, help="current title")
-    p_retitle.add_argument("--to", required=True, help="new title", dest="new_title")
 
-    p_rm = sub.add_parser("rm", help="delete named subsection")
-    p_rm.add_argument("-d", "--date", required=True)
-    p_rm.add_argument("-t", "--title", required=True)
-    p_rm.add_argument(
-        "-n",
-        "--dry-run",
-        action="store_true",
-        help="print what would be removed without writing",
+def build_parser():
+    """Construct the argparse top-level parser with every subcommand attached."""
+    parser = argparse.ArgumentParser(
+        prog="devlog",
+        description="Append/read/edit ~/devlog.md",
     )
-
+    sub = parser.add_subparsers(dest="cmd", metavar="COMMAND")
+    _add_write_subparsers(sub)
+    _add_read_subparsers(sub)
+    _add_repo_subparsers(sub)
     return parser
 
 
