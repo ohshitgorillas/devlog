@@ -1,5 +1,7 @@
 """Command-line interface: argparse subcommands dispatched to read/write helpers."""
 
+from __future__ import annotations
+
 import argparse
 import os
 import sys
@@ -27,14 +29,16 @@ from .write import (
 )
 
 
-def _resolve_body(arg):
+def _resolve_body(arg: str) -> str:
     """`-` means read from stdin; otherwise return arg verbatim."""
     if arg == "-":
         return sys.stdin.read()
     return arg
 
 
-def _add_write_subparsers(sub):
+def _add_write_subparsers(
+    sub: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     """Attach the add/edit/amend/addend/retitle/rm subparsers to `sub`."""
     p_add = sub.add_parser("add", help="add new subsection under today")
     p_add.add_argument("-t", "--title", required=True)
@@ -87,7 +91,9 @@ def _add_write_subparsers(sub):
     )
 
 
-def _add_read_subparsers(sub):
+def _add_read_subparsers(
+    sub: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     """Attach the show/find/recent/list/last/exists subparsers to `sub`."""
     p_show = sub.add_parser("show", help="print full day section")
     p_show.add_argument("date", metavar="DATE", help="YYYYMMDD or MMDD")
@@ -115,7 +121,9 @@ def _add_read_subparsers(sub):
     p_exists.add_argument("-t", "--title", required=True)
 
 
-def _add_repo_subparsers(sub):
+def _add_repo_subparsers(
+    sub: argparse._SubParsersAction[argparse.ArgumentParser],
+) -> None:
     """Attach the log/diff/undo subparsers (data-repo wrappers) to `sub`."""
     p_log = sub.add_parser("log", help="show data-repo commit history")
     p_log.add_argument(
@@ -128,7 +136,7 @@ def _add_repo_subparsers(sub):
     sub.add_parser("undo", help="revert last commit in the data repo")
 
 
-def build_parser():
+def build_parser() -> argparse.ArgumentParser:
     """Construct the argparse top-level parser with every subcommand attached."""
     parser = argparse.ArgumentParser(
         prog="devlog",
@@ -141,7 +149,7 @@ def build_parser():
     return parser
 
 
-def main():
+def main() -> None:
     """Run migration + manual-edit capture, then dispatch the requested subcommand."""
     migrate_if_needed()
     capture_manual_edits()

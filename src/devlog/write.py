@@ -1,5 +1,7 @@
 """Write commands: add, edit, amend, addend, retitle, rm, undo."""
 
+from __future__ import annotations
+
 import os
 import re
 import subprocess
@@ -23,13 +25,15 @@ from .store import (
 )
 
 
-def _title_text(title_line):
+def _title_text(title_line: str) -> str:
     """Extract bare title from a '### [HH:MM] Title' line."""
     m = TITLE_PAT.match(title_line.rstrip())
     return m.group(1) if m else title_line.rstrip()
 
 
-def _resolve_target(lines, date_arg, title):
+def _resolve_target(
+    lines: list[str], date_arg: str | None, title: str | None
+) -> tuple[int, int, int]:
     """Locate target subsection. If date+title given, find that one.
     Otherwise return the newest. Returns (date_idx, sub_start, sub_end)."""
     if date_arg or title:
@@ -47,9 +51,9 @@ def _resolve_target(lines, date_arg, title):
     return found
 
 
-def build_block(title, body):
+def build_block(title: str | None, body: str | None) -> list[str]:
     """Build a list of lines for a new subsection (title heading + body)."""
-    lines = []
+    lines: list[str] = []
     if title:
         ts = datetime.now().strftime("%H:%M")
         lines += [f"### [{ts}] {title}\n", "\n"]
@@ -60,7 +64,9 @@ def build_block(title, body):
     return lines
 
 
-def _insert_under_today(lines, today_idx, block):
+def _insert_under_today(
+    lines: list[str], today_idx: int, block: list[str]
+) -> list[str]:
     """Insert `block` immediately under an existing today date heading."""
     pos = today_idx + 1
     if pos < len(lines) and not lines[pos].strip():
@@ -68,7 +74,7 @@ def _insert_under_today(lines, today_idx, block):
     return lines[:pos] + block + lines[pos:]
 
 
-def _insert_new_section(lines, section):
+def _insert_new_section(lines: list[str], section: list[str]) -> list[str]:
     """Prepend a brand-new date section above the existing latest section,
     or at the top of the file if no date sections exist yet."""
     first_date = next(
@@ -81,7 +87,7 @@ def _insert_new_section(lines, section):
     return lines[: title_line + 1] + ["\n"] + section + lines[title_line + 1 :]
 
 
-def insert_entry(title, body):
+def insert_entry(title: str, body: str) -> None:
     """Add a new subsection under today's date heading (creating it if needed)."""
     with write_lock():
         lines = read_lines()
@@ -108,7 +114,7 @@ def insert_entry(title, body):
     print(f"Entry added under {today}")
 
 
-def cmd_edit(date_arg=None, title=None):
+def cmd_edit(date_arg: str | None = None, title: str | None = None) -> None:
     """Open a subsection in $EDITOR; splice the result back into the devlog."""
     # Lock is held for the duration of the editor session so that a
     # concurrent write can't shift line numbers under us. Editor sessions
@@ -144,7 +150,9 @@ def cmd_edit(date_arg=None, title=None):
     print(f"Edited: {new_lines[0].rstrip()}")
 
 
-def cmd_amend(new_text, date_arg=None, title=None):
+def cmd_amend(
+    new_text: str, date_arg: str | None = None, title: str | None = None
+) -> None:
     """Replace the body of a subsection (keep the title line)."""
     with write_lock():
         lines = read_lines()
@@ -160,7 +168,9 @@ def cmd_amend(new_text, date_arg=None, title=None):
     print(f"Amended: {title_line.rstrip()}")
 
 
-def cmd_addend(new_text, date_arg=None, title=None):
+def cmd_addend(
+    new_text: str, date_arg: str | None = None, title: str | None = None
+) -> None:
     """Append a paragraph to the bottom of a subsection's body."""
     with write_lock():
         lines = read_lines()
@@ -179,7 +189,7 @@ def cmd_addend(new_text, date_arg=None, title=None):
     print(f"Added to: {title_line.rstrip()}")
 
 
-def cmd_undo():
+def cmd_undo() -> None:
     """Revert the most recent commit in the data repo (`git revert HEAD`)."""
     repo = os.path.dirname(DEVLOG)
     if not os.path.isdir(os.path.join(repo, ".git")):
@@ -198,7 +208,7 @@ def cmd_undo():
     print(f"Undid: {head_subj}")
 
 
-def cmd_retitle(date_arg, old_title, new_title):
+def cmd_retitle(date_arg: str, old_title: str, new_title: str) -> None:
     """Rename a subsection in place, preserving the [HH:MM] timestamp."""
     target = parse_date_arg(date_arg)
     target_heading = target.strftime("## %B %-d, %Y")
@@ -222,7 +232,7 @@ def cmd_retitle(date_arg, old_title, new_title):
     print(f"Retitled: {old_title} -> {new_title}")
 
 
-def cmd_rm(date_arg, title, dry_run=False):
+def cmd_rm(date_arg: str, title: str, dry_run: bool = False) -> None:
     """Delete a subsection (and the date section if it becomes empty)."""
     target = parse_date_arg(date_arg)
     target_heading = target.strftime("## %B %-d, %Y")
@@ -233,7 +243,7 @@ def cmd_rm(date_arg, title, dry_run=False):
         return _rm_impl(target_heading, title, dry_run=False)
 
 
-def _rm_impl(target_heading, title, dry_run):
+def _rm_impl(target_heading: str, title: str, dry_run: bool) -> None:
     """Body of cmd_rm — separated so it can run with or without write_lock."""
     lines = read_lines()
 

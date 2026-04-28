@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from typing import Callable, Iterator
 
 DEVLOG = os.environ.get("DEVLOG_FILE") or os.path.expanduser("~/.devlog/devlog.md")
 LOCKFILE = os.path.join(os.path.dirname(DEVLOG), ".devlog.lock")
@@ -18,7 +19,7 @@ TITLE_PAT = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
 TITLE_TS_PAT = re.compile(r"^### (?:\[(\d{2}:\d{2})\] )?(.*)$")
 
 
-def parse_title_line(line):
+def parse_title_line(line: str) -> tuple[str | None, str]:
     """Split a '### [HH:MM] Title' line into (ts, title). ts is None
     if no timestamp prefix is present."""
     m = TITLE_TS_PAT.match(line.rstrip())
@@ -28,7 +29,7 @@ def parse_title_line(line):
 
 
 @contextlib.contextmanager
-def write_lock():
+def write_lock() -> Iterator[None]:
     """Hold an exclusive flock for the duration of a read-modify-write op.
     Reads are not blocked (advisory lock; readers don't acquire it)."""
     os.makedirs(os.path.dirname(LOCKFILE), exist_ok=True)
@@ -41,13 +42,13 @@ def write_lock():
         os.close(fd)
 
 
-def read_lines():
+def read_lines() -> list[str]:
     """Return the devlog file contents as a list of lines (with newlines)."""
     with open(DEVLOG, encoding="utf-8") as f:
         return f.readlines()
 
 
-def _git(repo, *args, check=True):
+def _git(repo: str, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["git", "-C", repo, *args],
         check=check,
@@ -56,7 +57,7 @@ def _git(repo, *args, check=True):
     )
 
 
-def init_repo(repo):
+def init_repo(repo: str) -> None:
     """Init a git repo at `repo` if absent, and ensure a usable identity
     (local config only, never touching global)."""
     if os.path.isdir(os.path.join(repo, ".git")):
@@ -67,7 +68,7 @@ def init_repo(repo):
         _git(repo, "config", "user.name", "devlog")
 
 
-def capture_manual_edits():
+def capture_manual_edits() -> None:
     """If the data file has uncommitted diffs vs HEAD, commit them as a
     'manual edit' so direct edits (vim, sed, scp) are still captured in
     git history. No-op if no repo or no diffs."""
@@ -89,7 +90,7 @@ def capture_manual_edits():
         print(f"warning: capture_manual_edits failed: {e}", file=sys.stderr)
 
 
-def git_snapshot(message):
+def git_snapshot(message: str) -> None:
     """Stage everything and commit. Best-effort: a failure here doesn't
     abort the surrounding write op (the data is already saved). No-op if
     nothing changed."""
@@ -104,7 +105,7 @@ def git_snapshot(message):
         print(f"warning: git snapshot failed: {e}", file=sys.stderr)
 
 
-def write_lines(lines):
+def write_lines(lines: list[str]) -> None:
     """Atomic write: stage to a tempfile in the same directory, then
     rename over the target. POSIX rename is atomic, so a crash mid-write
     can never leave a truncated/corrupt devlog."""
@@ -121,7 +122,7 @@ def write_lines(lines):
         raise
 
 
-def parse_sections(lines):
+def parse_sections(lines: list[str]) -> list[tuple[str, list[str]]]:
     """Return list of (date_heading_line, [content_lines]) for each date section."""
     sections = []
     current_heading: str | None = None
@@ -139,7 +140,7 @@ def parse_sections(lines):
     return sections
 
 
-def parse_subsections(content_lines):
+def parse_subsections(content_lines: list[str]) -> list[tuple[str, list[str]]]:
     """Split section content into list of (title_line, [body_lines])."""
     subs = []
     current_title: str | None = None
@@ -157,7 +158,7 @@ def parse_subsections(content_lines):
     return subs
 
 
-def find_section_end(lines, date_idx):
+def find_section_end(lines: list[str], date_idx: int) -> int:
     """Return the index of the next date heading after `date_idx`, or len(lines)."""
     for i in range(date_idx + 1, len(lines)):
         if DATE_PAT.match(lines[i].rstrip()):
@@ -165,7 +166,9 @@ def find_section_end(lines, date_idx):
     return len(lines)
 
 
-def _find_sub_start(lines, lo, hi, matches):
+def _find_sub_start(
+    lines: list[str], lo: int, hi: int, matches: Callable[[str], bool]
+) -> int | None:
     """Return the first index in [lo, hi) whose subsection title satisfies `matches`."""
     for i in range(lo, hi):
         if matches(lines[i]):
@@ -173,7 +176,7 @@ def _find_sub_start(lines, lo, hi, matches):
     return None
 
 
-def _find_sub_end(lines, sub_start, section_end):
+def _find_sub_end(lines: list[str], sub_start: int, section_end: int) -> int:
     """Return the start index of the next subsection after `sub_start`, capped at section_end."""
     for i in range(sub_start + 1, section_end):
         if SUB_PAT.match(lines[i]):
@@ -181,17 +184,19 @@ def _find_sub_end(lines, sub_start, section_end):
     return section_end
 
 
-def _title_matches(title):
+def _title_matches(title: str) -> Callable[[str], bool]:
     """Return a predicate matching a '### [HH:MM] Title' line whose title equals `title`."""
 
-    def predicate(line):
+    def predicate(line: str) -> bool:
         m = TITLE_PAT.match(line.rstrip())
         return m is not None and m.group(1) == title
 
     return predicate
 
 
-def find_subsection(lines, target_heading, title):
+def find_subsection(
+    lines: list[str], target_heading: str, title: str
+) -> tuple[int, int, int] | None:
     """Return (date_idx, sub_start, sub_end) for a subsection matching
     `title` under `target_heading` (e.g. '## April 27, 2026'), or None."""
     date_idx = next(
@@ -207,7 +212,7 @@ def find_subsection(lines, target_heading, title):
     return (date_idx, sub_start, sub_end)
 
 
-def find_last_subsection(lines):
+def find_last_subsection(lines: list[str]) -> tuple[int, int, int] | None:
     """Return (date_idx, sub_start, sub_end) of newest subsection, or None."""
     date_idx = next(
         (i for i, line in enumerate(lines) if DATE_PAT.match(line.rstrip())), None

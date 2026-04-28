@@ -4,12 +4,14 @@ Idempotent: safe to call on every invocation. No-ops once the new path
 exists or the env var override is set.
 """
 
+from __future__ import annotations
+
 import os
 
 from .store import DEVLOG, git_snapshot
 
 
-def migrate_if_needed():
+def migrate_if_needed() -> None:
     """Move a legacy ~/devlog.md file into the new data dir and seed a
     git repo around it. Idempotent."""
     legacy = os.path.expanduser("~/devlog.md")
