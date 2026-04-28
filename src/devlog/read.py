@@ -9,7 +9,7 @@ import sys
 from datetime import datetime, timedelta
 from typing import Any
 
-from .dates import parse_date_arg, parse_date_heading
+from .dates import format_date_heading, parse_date_arg, parse_date_heading
 from .store import (
     DEVLOG,
     find_last_subsection,
@@ -45,7 +45,7 @@ def _entry_dict(
 def cmd_date(arg: str, json_out: bool = False) -> None:
     """Print the full day section for `arg` (YYYYMMDD or MMDD)."""
     target = parse_date_arg(arg)
-    target_heading = target.strftime("## %B %-d, %Y")
+    target_heading = format_date_heading(target)
 
     sections = parse_sections(read_lines())
     for heading, content in sections:
@@ -133,7 +133,7 @@ def cmd_diff(ref: str = "HEAD") -> None:
 def cmd_exists(date_arg: str, title: str) -> None:
     """Exit 0 if a subsection exists at (date, title), else exit 1."""
     target = parse_date_arg(date_arg)
-    target_heading = target.strftime("## %B %-d, %Y")
+    target_heading = format_date_heading(target)
     lines = read_lines()
     if find_subsection(lines, target_heading, title) is None:
         sys.exit(1)

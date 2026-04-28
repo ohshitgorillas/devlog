@@ -1,25 +1,57 @@
-"""Date helpers: parse user-supplied dates and format markdown headings."""
+"""Date helpers: parse user-supplied dates and format markdown headings.
+
+Month names are formatted and parsed via an explicit English list rather
+than ``strftime``/``strptime`` ``%B``, which is locale-sensitive. This
+keeps the data file format stable regardless of ``LC_TIME``.
+"""
 
 from __future__ import annotations
 
+import re
 import sys
 from datetime import datetime
+
+MONTHS = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+]
+
+_HEADING_PAT = re.compile(r"^([A-Za-z]+) (\d{1,2}), (\d{4})$")
+
+
+def format_date_heading(dt: datetime) -> str:
+    """Return ``dt`` formatted as a level-2 markdown heading line."""
+    return f"## {MONTHS[dt.month - 1]} {dt.day}, {dt.year}"
 
 
 def today_heading() -> str:
     """Return today's date as a markdown heading line, e.g. '## April 28, 2026'."""
-    return datetime.now().strftime("## %B %-d, %Y")
+    return format_date_heading(datetime.now())
 
 
 def parse_date_heading(line: str) -> datetime | None:
     """Parse a date heading into a datetime, or None."""
+    stripped = line.strip().lstrip("# ").rstrip()
+    m = _HEADING_PAT.match(stripped)
+    if not m:
+        return None
+    month_name, day_s, year_s = m.group(1), m.group(2), m.group(3)
+    if month_name not in MONTHS:
+        return None
     try:
-        return datetime.strptime(line.strip().lstrip("# "), "%B %d, %Y")
+        return datetime(int(year_s), MONTHS.index(month_name) + 1, int(day_s))
     except ValueError:
-        try:
-            return datetime.strptime(line.strip().lstrip("# "), "%B %-d, %Y")
-        except ValueError:
-            return None
+        return None
 
 
 def parse_date_arg(arg: str) -> datetime:

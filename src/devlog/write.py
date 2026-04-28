@@ -9,12 +9,13 @@ import sys
 import tempfile
 from datetime import datetime
 
-from .dates import parse_date_arg, today_heading
+from .dates import format_date_heading, parse_date_arg, today_heading
 from .store import (
     DATE_PAT,
     DEVLOG,
     SUB_PAT,
     TITLE_PAT,
+    compute_outside_fence,
     find_last_subsection,
     find_section_end,
     find_subsection,
@@ -40,7 +41,7 @@ def _resolve_target(
         if not (date_arg and title):
             sys.exit("--date and --title must be used together")
         target = parse_date_arg(date_arg)
-        target_heading = target.strftime("## %B %-d, %Y")
+        target_heading = format_date_heading(target)
         found = find_subsection(lines, target_heading, title)
         if found is None:
             sys.exit(f"No subsection '{title}' under {target_heading}")
@@ -77,8 +78,13 @@ def _insert_under_today(
 def _insert_new_section(lines: list[str], section: list[str]) -> list[str]:
     """Prepend a brand-new date section above the existing latest section,
     or at the top of the file if no date sections exist yet."""
+    outside = compute_outside_fence(lines)
     first_date = next(
-        (i for i, line in enumerate(lines) if DATE_PAT.match(line.rstrip())),
+        (
+            i
+            for i, line in enumerate(lines)
+            if outside[i] and DATE_PAT.match(line.rstrip())
+        ),
         None,
     )
     if first_date is not None:
@@ -100,8 +106,14 @@ def insert_entry(title: str, body: str) -> None:
             )
 
         block = build_block(title, body)
+        outside = compute_outside_fence(lines)
         today_idx = next(
-            (i for i, line in enumerate(lines) if line.rstrip() == today), None
+            (
+                i
+                for i, line in enumerate(lines)
+                if outside[i] and line.rstrip() == today
+            ),
+            None,
         )
 
         if today_idx is not None:
@@ -211,10 +223,14 @@ def cmd_undo() -> None:
 def cmd_retitle(date_arg: str, old_title: str, new_title: str) -> None:
     """Rename a subsection in place, preserving the [HH:MM] timestamp."""
     target = parse_date_arg(date_arg)
-    target_heading = target.strftime("## %B %-d, %Y")
+    target_heading = format_date_heading(target)
     with write_lock():
         lines = read_lines()
-        if not any(line.rstrip() == target_heading for line in lines):
+        outside = compute_outside_fence(lines)
+        if not any(
+            outside[i] and line.rstrip() == target_heading
+            for i, line in enumerate(lines)
+        ):
             sys.exit(f"No section for {target_heading}")
         found = find_subsection(lines, target_heading, old_title)
         if found is None:
@@ -235,7 +251,7 @@ def cmd_retitle(date_arg: str, old_title: str, new_title: str) -> None:
 def cmd_rm(date_arg: str, title: str, dry_run: bool = False) -> None:
     """Delete a subsection (and the date section if it becomes empty)."""
     target = parse_date_arg(date_arg)
-    target_heading = target.strftime("## %B %-d, %Y")
+    target_heading = format_date_heading(target)
 
     if dry_run:
         return _rm_impl(target_heading, title, dry_run=True)
@@ -247,7 +263,11 @@ def _rm_impl(target_heading: str, title: str, dry_run: bool) -> None:
     """Body of cmd_rm — separated so it can run with or without write_lock."""
     lines = read_lines()
 
-    if not any(line.rstrip() == target_heading for line in lines):
+    outside = compute_outside_fence(lines)
+    if not any(
+        outside[i] and line.rstrip() == target_heading
+        for i, line in enumerate(lines)
+    ):
         sys.exit(f"No section for {target_heading}")
 
     found = find_subsection(lines, target_heading, title)
@@ -258,8 +278,10 @@ def _rm_impl(target_heading: str, title: str, dry_run: bool) -> None:
 
     new_lines = lines[:sub_start] + lines[sub_end:]
     new_section_end = section_end - (sub_end - sub_start)
+    new_outside = compute_outside_fence(new_lines)
     has_sub = any(
-        SUB_PAT.match(new_lines[i]) for i in range(date_idx + 1, new_section_end)
+        new_outside[i] and SUB_PAT.match(new_lines[i])
+        for i in range(date_idx + 1, new_section_end)
     )
     drops_section = not has_sub
     if drops_section:

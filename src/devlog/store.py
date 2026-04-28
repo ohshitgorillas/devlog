@@ -17,6 +17,7 @@ DATE_PAT = re.compile(r"^## [A-Z][a-z]+ \d{1,2}, \d{4}$")
 SUB_PAT = re.compile(r"^### ")
 TITLE_PAT = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
 TITLE_TS_PAT = re.compile(r"^### (?:\[(\d{2}:\d{2})\] )?(.*)$")
+_FENCE_PAT = re.compile(r"^(?:```|~~~)")
 
 
 def parse_title_line(line: str) -> tuple[str | None, str]:
@@ -26,6 +27,21 @@ def parse_title_line(line: str) -> tuple[str | None, str]:
     if m:
         return m.group(1), m.group(2)
     return None, line.rstrip()
+
+
+def compute_outside_fence(lines: list[str]) -> list[bool]:
+    """Return per-line booleans: True iff the line is outside any fenced code
+    block. Fence delimiter lines themselves are marked False so heading
+    detection ignores them."""
+    out: list[bool] = []
+    inside = False
+    for line in lines:
+        if _FENCE_PAT.match(line):
+            out.append(False)
+            inside = not inside
+        else:
+            out.append(not inside)
+    return out
 
 
 @contextlib.contextmanager
@@ -124,11 +140,12 @@ def write_lines(lines: list[str]) -> None:
 
 def parse_sections(lines: list[str]) -> list[tuple[str, list[str]]]:
     """Return list of (date_heading_line, [content_lines]) for each date section."""
+    outside = compute_outside_fence(lines)
     sections = []
     current_heading: str | None = None
     current_lines: list[str] = []
-    for line in lines:
-        if DATE_PAT.match(line.rstrip()):
+    for i, line in enumerate(lines):
+        if outside[i] and DATE_PAT.match(line.rstrip()):
             if current_heading is not None:
                 sections.append((current_heading, current_lines))
             current_heading = line.rstrip()
@@ -142,11 +159,12 @@ def parse_sections(lines: list[str]) -> list[tuple[str, list[str]]]:
 
 def parse_subsections(content_lines: list[str]) -> list[tuple[str, list[str]]]:
     """Split section content into list of (title_line, [body_lines])."""
+    outside = compute_outside_fence(content_lines)
     subs = []
     current_title: str | None = None
     current_body: list[str] = []
-    for line in content_lines:
-        if SUB_PAT.match(line):
+    for i, line in enumerate(content_lines):
+        if outside[i] and SUB_PAT.match(line):
             if current_title is not None:
                 subs.append((current_title, current_body))
             current_title = line.rstrip()
@@ -160,8 +178,9 @@ def parse_subsections(content_lines: list[str]) -> list[tuple[str, list[str]]]:
 
 def find_section_end(lines: list[str], date_idx: int) -> int:
     """Return the index of the next date heading after `date_idx`, or len(lines)."""
+    outside = compute_outside_fence(lines)
     for i in range(date_idx + 1, len(lines)):
-        if DATE_PAT.match(lines[i].rstrip()):
+        if outside[i] and DATE_PAT.match(lines[i].rstrip()):
             return i
     return len(lines)
 
@@ -170,16 +189,18 @@ def _find_sub_start(
     lines: list[str], lo: int, hi: int, matches: Callable[[str], bool]
 ) -> int | None:
     """Return the first index in [lo, hi) whose subsection title satisfies `matches`."""
+    outside = compute_outside_fence(lines)
     for i in range(lo, hi):
-        if matches(lines[i]):
+        if outside[i] and matches(lines[i]):
             return i
     return None
 
 
 def _find_sub_end(lines: list[str], sub_start: int, section_end: int) -> int:
     """Return the start index of the next subsection after `sub_start`, capped at section_end."""
+    outside = compute_outside_fence(lines)
     for i in range(sub_start + 1, section_end):
-        if SUB_PAT.match(lines[i]):
+        if outside[i] and SUB_PAT.match(lines[i]):
             return i
     return section_end
 
@@ -199,8 +220,14 @@ def find_subsection(
 ) -> tuple[int, int, int] | None:
     """Return (date_idx, sub_start, sub_end) for a subsection matching
     `title` under `target_heading` (e.g. '## April 27, 2026'), or None."""
+    outside = compute_outside_fence(lines)
     date_idx = next(
-        (i for i, line in enumerate(lines) if line.rstrip() == target_heading), None
+        (
+            i
+            for i, line in enumerate(lines)
+            if outside[i] and line.rstrip() == target_heading
+        ),
+        None,
     )
     if date_idx is None:
         return None
@@ -214,8 +241,14 @@ def find_subsection(
 
 def find_last_subsection(lines: list[str]) -> tuple[int, int, int] | None:
     """Return (date_idx, sub_start, sub_end) of newest subsection, or None."""
+    outside = compute_outside_fence(lines)
     date_idx = next(
-        (i for i, line in enumerate(lines) if DATE_PAT.match(line.rstrip())), None
+        (
+            i
+            for i, line in enumerate(lines)
+            if outside[i] and DATE_PAT.match(line.rstrip())
+        ),
+        None,
     )
     if date_idx is None:
         return None
