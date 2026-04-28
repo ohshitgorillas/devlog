@@ -26,6 +26,10 @@ def build_parser():
         "-e", "--entry", required=True,
         help="body text (use `-` to read from stdin)",
     )
+    p_add.add_argument(
+        "-n", "--name",
+        help="append author name to title (e.g. 'Title - name')",
+    )
 
     p_show = sub.add_parser("show", help="print full day section")
     p_show.add_argument("date", metavar="DATE", help="YYYYMMDD or MMDD")
@@ -88,7 +92,10 @@ def main():
         return
 
     dispatch = {
-        "add": lambda: insert_entry(args.title, _resolve_body(args.entry)),
+        "add": lambda: insert_entry(
+            f"{args.title} - {args.name}" if args.name else args.title,
+            _resolve_body(args.entry),
+        ),
         "show": lambda: cmd_date(args.date),
         "find": lambda: cmd_find(args.term),
         "recent": lambda: cmd_recent(args.days),
