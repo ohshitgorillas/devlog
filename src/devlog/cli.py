@@ -2,7 +2,7 @@ import argparse
 import sys
 
 from .read import cmd_date, cmd_exists, cmd_find, cmd_last, cmd_list, cmd_recent
-from .write import cmd_addend, cmd_amend, cmd_edit_last, cmd_rm, insert_entry
+from .write import cmd_addend, cmd_amend, cmd_edit, cmd_rm, insert_entry
 
 
 def _resolve_body(arg):
@@ -46,13 +46,25 @@ def build_parser():
     p_exists.add_argument("-d", "--date", required=True)
     p_exists.add_argument("-t", "--title", required=True)
 
-    sub.add_parser("edit", help="open newest subsection in $EDITOR")
+    p_edit = sub.add_parser(
+        "edit", help="open subsection in $EDITOR (newest by default)"
+    )
+    p_edit.add_argument("-d", "--date", help="target a specific subsection")
+    p_edit.add_argument("-t", "--title", help="target a specific subsection")
 
-    p_amend = sub.add_parser("amend", help="replace body of newest subsection")
+    p_amend = sub.add_parser(
+        "amend", help="replace body of subsection (newest by default)"
+    )
     p_amend.add_argument("body", help="new body (use `-` to read from stdin)")
+    p_amend.add_argument("-d", "--date", help="target a specific subsection")
+    p_amend.add_argument("-t", "--title", help="target a specific subsection")
 
-    p_addend = sub.add_parser("addend", help="append paragraph to bottom of newest subsection")
+    p_addend = sub.add_parser(
+        "addend", help="append paragraph to subsection (newest by default)"
+    )
     p_addend.add_argument("body", help="paragraph (use `-` to read from stdin)")
+    p_addend.add_argument("-d", "--date", help="target a specific subsection")
+    p_addend.add_argument("-t", "--title", help="target a specific subsection")
 
     p_rm = sub.add_parser("rm", help="delete named subsection")
     p_rm.add_argument("-d", "--date", required=True)
@@ -77,9 +89,9 @@ def main():
         "list": cmd_list,
         "last": cmd_last,
         "exists": lambda: cmd_exists(args.date, args.title),
-        "edit": cmd_edit_last,
-        "amend": lambda: cmd_amend(_resolve_body(args.body)),
-        "addend": lambda: cmd_addend(_resolve_body(args.body)),
+        "edit": lambda: cmd_edit(args.date, args.title),
+        "amend": lambda: cmd_amend(_resolve_body(args.body), args.date, args.title),
+        "addend": lambda: cmd_addend(_resolve_body(args.body), args.date, args.title),
         "rm": lambda: cmd_rm(args.date, args.title),
     }
     dispatch[args.cmd]()

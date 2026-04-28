@@ -10,9 +10,28 @@ from .store import (
     DATE_PAT,
     SUB_PAT,
     find_last_subsection,
+    find_subsection,
     read_lines,
     write_lines,
 )
+
+
+def _resolve_target(lines, date_arg, title):
+    """Locate target subsection. If date+title given, find that one.
+    Otherwise return the newest. Returns (date_idx, sub_start, sub_end)."""
+    if date_arg or title:
+        if not (date_arg and title):
+            sys.exit("--date and --title must be used together")
+        target = parse_date_arg(date_arg)
+        target_heading = target.strftime("## %B %-d, %Y")
+        found = find_subsection(lines, target_heading, title)
+        if found is None:
+            sys.exit(f"No subsection '{title}' under {target_heading}")
+        return found
+    found = find_last_subsection(lines)
+    if found is None:
+        sys.exit("No entries")
+    return found
 
 
 def build_block(title, body):
@@ -52,12 +71,9 @@ def insert_entry(title, body):
     print(f"Entry added under {today}")
 
 
-def cmd_edit_last():
+def cmd_edit(date_arg=None, title=None):
     lines = read_lines()
-    found = find_last_subsection(lines)
-    if found is None:
-        sys.exit("No entries to edit")
-    _, sub_start, sub_end = found
+    _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
 
     editor = os.environ.get("EDITOR", "vim")
     with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tf:
@@ -82,12 +98,9 @@ def cmd_edit_last():
     print(f"Edited: {new_lines[0].rstrip()}")
 
 
-def cmd_amend(new_text):
+def cmd_amend(new_text, date_arg=None, title=None):
     lines = read_lines()
-    found = find_last_subsection(lines)
-    if found is None:
-        sys.exit("No entries to amend")
-    _, sub_start, sub_end = found
+    _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
     title_line = lines[sub_start]
     new_body = ["\n"]
     for line in new_text.strip().splitlines():
@@ -98,12 +111,9 @@ def cmd_amend(new_text):
     print(f"Amended: {title_line.rstrip()}")
 
 
-def cmd_addend(new_text):
+def cmd_addend(new_text, date_arg=None, title=None):
     lines = read_lines()
-    found = find_last_subsection(lines)
-    if found is None:
-        sys.exit("No entries to add to")
-    _, sub_start, sub_end = found
+    _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
     title_line = lines[sub_start]
     insert_pos = sub_end
     while insert_pos > sub_start + 1 and not lines[insert_pos - 1].strip():
