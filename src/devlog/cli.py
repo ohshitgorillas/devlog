@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 
+from . import __version__
 from .migrate import migrate_if_needed
 from .read import (
     cmd_date,
@@ -141,6 +142,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="devlog",
         description="Append/read/edit ~/devlog.md",
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
     sub = parser.add_subparsers(dest="cmd", metavar="COMMAND")
     _add_write_subparsers(sub)
