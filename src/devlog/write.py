@@ -77,13 +77,19 @@ def insert_entry(title, body):
                 pos += 1
             lines = lines[:pos] + block + lines[pos:]
         else:
-            first_date = next((i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None)
+            first_date = next(
+                (i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None
+            )
             section = [today + "\n", "\n"] + block
             if first_date is not None:
                 lines = lines[:first_date] + section + lines[first_date:]
             else:
-                title_line = next((i for i, l in enumerate(lines) if l.startswith("# ")), 0)
-                lines = lines[:title_line + 1] + ["\n"] + section + lines[title_line + 1:]
+                title_line = next(
+                    (i for i, l in enumerate(lines) if l.startswith("# ")), 0
+                )
+                lines = (
+                    lines[: title_line + 1] + ["\n"] + section + lines[title_line + 1 :]
+                )
 
         write_lines(lines)
         git_snapshot(f"add: {title}")
@@ -162,7 +168,9 @@ def cmd_undo():
         sys.exit("No git repo at devlog data dir — nothing to undo")
     head_subj = subprocess.run(
         ["git", "-C", repo, "log", "-1", "--format=%s"],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     ).stdout.strip()
     with write_lock():
         subprocess.run(
@@ -224,7 +232,9 @@ def _rm_impl(target_heading, title, dry_run):
 
     new_lines = lines[:sub_start] + lines[sub_end:]
     new_section_end = section_end - (sub_end - sub_start)
-    has_sub = any(SUB_PAT.match(new_lines[i]) for i in range(date_idx + 1, new_section_end))
+    has_sub = any(
+        SUB_PAT.match(new_lines[i]) for i in range(date_idx + 1, new_section_end)
+    )
     drops_section = not has_sub
     if drops_section:
         new_lines = new_lines[:date_idx] + new_lines[new_section_end:]

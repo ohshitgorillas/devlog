@@ -42,11 +42,14 @@ def build_parser():
     p_add = sub.add_parser("add", help="add new subsection under today")
     p_add.add_argument("-t", "--title", required=True)
     p_add.add_argument(
-        "-e", "--entry", required=True,
+        "-e",
+        "--entry",
+        required=True,
         help="body text (use `-` to read from stdin)",
     )
     p_add.add_argument(
-        "-n", "--name",
+        "-n",
+        "--name",
         default=os.environ.get("DEVLOG_NAME"),
         help="append author name to title (env: DEVLOG_NAME)",
     )
@@ -97,7 +100,9 @@ def build_parser():
     p_addend.add_argument("-t", "--title", help="target a specific subsection")
 
     p_log = sub.add_parser("log", help="show data-repo commit history")
-    p_log.add_argument("n", nargs="?", type=int, default=20, help="number of commits (default 20)")
+    p_log.add_argument(
+        "n", nargs="?", type=int, default=20, help="number of commits (default 20)"
+    )
 
     p_diff = sub.add_parser("diff", help="show data-repo commit diff")
     p_diff.add_argument("ref", nargs="?", default="HEAD", help="git ref (default HEAD)")
@@ -113,7 +118,9 @@ def build_parser():
     p_rm.add_argument("-d", "--date", required=True)
     p_rm.add_argument("-t", "--title", required=True)
     p_rm.add_argument(
-        "-n", "--dry-run", action="store_true",
+        "-n",
+        "--dry-run",
+        action="store_true",
         help="print what would be removed without writing",
     )
 

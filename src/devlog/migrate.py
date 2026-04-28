@@ -3,6 +3,7 @@
 Idempotent: safe to call on every invocation. No-ops once the new path
 exists or the env var override is set.
 """
+
 import os
 
 from .store import DEVLOG, git_snapshot

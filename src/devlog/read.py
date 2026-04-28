@@ -58,7 +58,8 @@ def cmd_find(term, json_out=False):
     for heading, content in sections:
         subs = parse_subsections(content)
         matching = [
-            (title, body) for title, body in subs
+            (title, body)
+            for title, body in subs
             if term_lower in (title + "\n" + "".join(body)).lower()
         ]
         if matching:
@@ -125,7 +126,7 @@ def cmd_last(json_out=False):
     if json_out:
         title_line = lines[sub_start]
         ts, t = parse_title_line(title_line)
-        body = "".join(lines[sub_start + 1:sub_end]).strip()
+        body = "".join(lines[sub_start + 1 : sub_end]).strip()
         date = _strip_heading(lines[date_idx].rstrip())
         print(json.dumps({"date": date, "ts": ts, "title": t, "body": body}, indent=2))
         return
@@ -169,10 +170,12 @@ def cmd_recent(n_days, json_out=False):
         matches.append((heading, content, subs))
 
     if json_out:
-        print(json.dumps(
-            [_entry_dict(h, s) for h, _, s in matches],
-            indent=2,
-        ))
+        print(
+            json.dumps(
+                [_entry_dict(h, s) for h, _, s in matches],
+                indent=2,
+            )
+        )
         return
 
     if not matches:

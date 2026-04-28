@@ -13,3 +13,17 @@ devlog = "devlog.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py39"
+src = ["src"]
+
+[tool.mypy]
+python_version = "3.9"
+files = ["src/devlog"]
+
+[tool.pylint.main]
+fail-under = 10.0
+
+[tool.pylint.format]
+max-line-length = 100

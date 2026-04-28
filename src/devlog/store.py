@@ -183,7 +183,9 @@ def find_subsection(lines, target_heading, title):
 
 def find_last_subsection(lines):
     """Return (date_idx, sub_start, sub_end) of newest subsection, or None."""
-    date_idx = next((i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None)
+    date_idx = next(
+        (i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None
+    )
     if date_idx is None:
         return None
     section_end = len(lines)
