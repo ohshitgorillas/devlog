@@ -1,0 +1,160 @@
+import os
+import re
+import subprocess
+import sys
+import tempfile
+from datetime import datetime
+
+from .dates import parse_date_arg, today_heading
+from .store import (
+    DATE_PAT,
+    SUB_PAT,
+    find_last_subsection,
+    read_lines,
+    write_lines,
+)
+
+
+def build_block(title, body):
+    lines = []
+    if title:
+        ts = datetime.now().strftime("%H:%M")
+        lines += [f"### [{ts}] {title}\n", "\n"]
+    if body:
+        for line in body.strip().splitlines():
+            lines.append(line + "\n")
+        lines.append("\n")
+    return lines
+
+
+def insert_entry(title, body):
+    lines = read_lines()
+    today = today_heading()
+    block = build_block(title, body)
+
+    today_idx = next((i for i, l in enumerate(lines) if l.rstrip() == today), None)
+
+    if today_idx is not None:
+        pos = today_idx + 1
+        if pos < len(lines) and not lines[pos].strip():
+            pos += 1
+        lines = lines[:pos] + block + lines[pos:]
+    else:
+        first_date = next((i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None)
+        section = [today + "\n", "\n"] + block
+        if first_date is not None:
+            lines = lines[:first_date] + section + lines[first_date:]
+        else:
+            title_line = next((i for i, l in enumerate(lines) if l.startswith("# ")), 0)
+            lines = lines[:title_line + 1] + ["\n"] + section + lines[title_line + 1:]
+
+    write_lines(lines)
+    print(f"Entry added under {today}")
+
+
+def cmd_edit_last():
+    lines = read_lines()
+    found = find_last_subsection(lines)
+    if found is None:
+        sys.exit("No entries to edit")
+    _, sub_start, sub_end = found
+
+    editor = os.environ.get("EDITOR", "vim")
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tf:
+        tf.writelines(lines[sub_start:sub_end])
+        tmp_path = tf.name
+
+    try:
+        subprocess.run([editor, tmp_path], check=True)
+        with open(tmp_path) as f:
+            new_lines = f.readlines()
+    finally:
+        os.unlink(tmp_path)
+
+    while new_lines and not new_lines[-1].strip():
+        new_lines.pop()
+    if not new_lines:
+        sys.exit("Edit aborted: empty result")
+    new_lines.append("\n")
+
+    lines = lines[:sub_start] + new_lines + lines[sub_end:]
+    write_lines(lines)
+    print(f"Edited: {new_lines[0].rstrip()}")
+
+
+def cmd_amend(new_text):
+    lines = read_lines()
+    found = find_last_subsection(lines)
+    if found is None:
+        sys.exit("No entries to amend")
+    _, sub_start, sub_end = found
+    title_line = lines[sub_start]
+    new_body = ["\n"]
+    for line in new_text.strip().splitlines():
+        new_body.append(line + "\n")
+    new_body.append("\n")
+    lines = lines[:sub_start] + [title_line] + new_body + lines[sub_end:]
+    write_lines(lines)
+    print(f"Amended: {title_line.rstrip()}")
+
+
+def cmd_addend(new_text):
+    lines = read_lines()
+    found = find_last_subsection(lines)
+    if found is None:
+        sys.exit("No entries to add to")
+    _, sub_start, sub_end = found
+    title_line = lines[sub_start]
+    insert_pos = sub_end
+    while insert_pos > sub_start + 1 and not lines[insert_pos - 1].strip():
+        insert_pos -= 1
+    addend = ["\n"]
+    for line in new_text.strip().splitlines():
+        addend.append(line + "\n")
+    addend.append("\n")
+    lines = lines[:insert_pos] + addend + lines[insert_pos:]
+    write_lines(lines)
+    print(f"Added to: {title_line.rstrip()}")
+
+
+def cmd_rm(date_arg, title):
+    target = parse_date_arg(date_arg)
+    target_heading = target.strftime("## %B %-d, %Y")
+
+    lines = read_lines()
+
+    date_idx = next((i for i, l in enumerate(lines) if l.rstrip() == target_heading), None)
+    if date_idx is None:
+        sys.exit(f"No section for {target_heading}")
+
+    section_end = len(lines)
+    for i in range(date_idx + 1, len(lines)):
+        if DATE_PAT.match(lines[i].rstrip()):
+            section_end = i
+            break
+
+    ts_pat = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
+    sub_start = None
+    for i in range(date_idx + 1, section_end):
+        m = ts_pat.match(lines[i].rstrip())
+        if m and m.group(1) == title:
+            sub_start = i
+            break
+    if sub_start is None:
+        sys.exit(f"No subsection '{title}' under {target_heading}")
+
+    sub_end = section_end
+    for i in range(sub_start + 1, section_end):
+        if SUB_PAT.match(lines[i]):
+            sub_end = i
+            break
+
+    lines = lines[:sub_start] + lines[sub_end:]
+
+    new_section_end = section_end - (sub_end - sub_start)
+    has_sub = any(SUB_PAT.match(lines[i]) for i in range(date_idx + 1, new_section_end))
+    if not has_sub:
+        lines = lines[:date_idx] + lines[new_section_end:]
+
+    write_lines(lines)
+    print(f"Removed '{title}' from {target_heading}")

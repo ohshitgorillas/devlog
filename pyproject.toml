@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devlog"
+version = "0.1.0"
+description = "Append/read/edit ~/devlog.md"
+requires-python = ">=3.9"
+
+[project.scripts]
+devlog = "devlog.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
