@@ -1,5 +1,4 @@
 import os
-import re
 import subprocess
 import sys
 import tempfile
@@ -168,30 +167,18 @@ def cmd_rm(date_arg, title, dry_run=False):
 def _rm_impl(target_heading, title, dry_run):
     lines = read_lines()
 
-    date_idx = next((i for i, l in enumerate(lines) if l.rstrip() == target_heading), None)
-    if date_idx is None:
+    if not any(l.rstrip() == target_heading for l in lines):
         sys.exit(f"No section for {target_heading}")
+
+    found = find_subsection(lines, target_heading, title)
+    if found is None:
+        sys.exit(f"No subsection '{title}' under {target_heading}")
+    date_idx, sub_start, sub_end = found
 
     section_end = len(lines)
     for i in range(date_idx + 1, len(lines)):
         if DATE_PAT.match(lines[i].rstrip()):
             section_end = i
-            break
-
-    ts_pat = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
-    sub_start = None
-    for i in range(date_idx + 1, section_end):
-        m = ts_pat.match(lines[i].rstrip())
-        if m and m.group(1) == title:
-            sub_start = i
-            break
-    if sub_start is None:
-        sys.exit(f"No subsection '{title}' under {target_heading}")
-
-    sub_end = section_end
-    for i in range(sub_start + 1, section_end):
-        if SUB_PAT.match(lines[i]):
-            sub_end = i
             break
 
     new_lines = lines[:sub_start] + lines[sub_end:]
