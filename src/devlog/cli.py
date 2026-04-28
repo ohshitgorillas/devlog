@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 
 from .migrate import migrate_if_needed
@@ -46,7 +47,8 @@ def build_parser():
     )
     p_add.add_argument(
         "-n", "--name",
-        help="append author name to title (e.g. 'Title - name')",
+        default=os.environ.get("DEVLOG_NAME"),
+        help="append author name to title (env: DEVLOG_NAME)",
     )
 
     p_show = sub.add_parser("show", help="print full day section")
