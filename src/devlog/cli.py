@@ -10,6 +10,7 @@ from .write import (
     cmd_edit,
     cmd_retitle,
     cmd_rm,
+    cmd_undo,
     insert_entry,
 )
 
@@ -79,6 +80,8 @@ def build_parser():
     p_addend.add_argument("-d", "--date", help="target a specific subsection")
     p_addend.add_argument("-t", "--title", help="target a specific subsection")
 
+    sub.add_parser("undo", help="revert last commit in the data repo")
+
     p_retitle = sub.add_parser("retitle", help="rename existing subsection")
     p_retitle.add_argument("-d", "--date", required=True)
     p_retitle.add_argument("-t", "--title", required=True, help="current title")
@@ -119,6 +122,7 @@ def main():
         "edit": lambda: cmd_edit(args.date, args.title),
         "amend": lambda: cmd_amend(_resolve_body(args.body), args.date, args.title),
         "addend": lambda: cmd_addend(_resolve_body(args.body), args.date, args.title),
+        "undo": cmd_undo,
         "retitle": lambda: cmd_retitle(args.date, args.title, args.new_title),
         "rm": lambda: cmd_rm(args.date, args.title, args.dry_run),
     }

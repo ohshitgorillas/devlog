@@ -8,6 +8,7 @@ from datetime import datetime
 from .dates import parse_date_arg, today_heading
 from .store import (
     DATE_PAT,
+    DEVLOG,
     SUB_PAT,
     TITLE_PAT,
     find_last_subsection,
@@ -153,6 +154,22 @@ def cmd_addend(new_text, date_arg=None, title=None):
         write_lines(lines)
         git_snapshot(f"addend: {_title_text(title_line)}")
     print(f"Added to: {title_line.rstrip()}")
+
+
+def cmd_undo():
+    repo = os.path.dirname(DEVLOG)
+    if not os.path.isdir(os.path.join(repo, ".git")):
+        sys.exit("No git repo at devlog data dir — nothing to undo")
+    head_subj = subprocess.run(
+        ["git", "-C", repo, "log", "-1", "--format=%s"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    with write_lock():
+        subprocess.run(
+            ["git", "-C", repo, "revert", "HEAD", "--no-edit"],
+            check=True,
+        )
+    print(f"Undid: {head_subj}")
 
 
 def cmd_retitle(date_arg, old_title, new_title):
