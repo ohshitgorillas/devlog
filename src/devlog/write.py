@@ -49,6 +49,13 @@ def build_block(title, body):
 def insert_entry(title, body):
     lines = read_lines()
     today = today_heading()
+
+    if title and find_subsection(lines, today, title) is not None:
+        sys.exit(
+            f"Subsection '{title}' already exists under {today}. "
+            f"Use a different title or `devlog amend`/`addend`."
+        )
+
     block = build_block(title, body)
 
     today_idx = next((i for i, l in enumerate(lines) if l.rstrip() == today), None)
