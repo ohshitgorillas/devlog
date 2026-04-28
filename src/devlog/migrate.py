@@ -10,6 +10,8 @@ from .store import DEVLOG, git_snapshot
 
 
 def migrate_if_needed():
+    """Move a legacy ~/devlog.md file into the new data dir and seed a
+    git repo around it. Idempotent."""
     legacy = os.path.expanduser("~/devlog.md")
     if os.environ.get("DEVLOG_FILE"):
         return

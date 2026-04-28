@@ -1,3 +1,5 @@
+"""Write commands: add, edit, amend, addend, retitle, rm, undo."""
+
 import os
 import re
 import subprocess
@@ -45,6 +47,7 @@ def _resolve_target(lines, date_arg, title):
 
 
 def build_block(title, body):
+    """Build a list of lines for a new subsection (title heading + body)."""
     lines = []
     if title:
         ts = datetime.now().strftime("%H:%M")
@@ -57,6 +60,7 @@ def build_block(title, body):
 
 
 def insert_entry(title, body):
+    """Add a new subsection under today's date heading (creating it if needed)."""
     with write_lock():
         lines = read_lines()
         today = today_heading()
@@ -100,6 +104,7 @@ def insert_entry(title, body):
 
 
 def cmd_edit(date_arg=None, title=None):
+    """Open a subsection in $EDITOR; splice the result back into the devlog."""
     # Lock is held for the duration of the editor session so that a
     # concurrent write can't shift line numbers under us. Editor sessions
     # are interactive so other devlog writers will block — acceptable
@@ -135,6 +140,7 @@ def cmd_edit(date_arg=None, title=None):
 
 
 def cmd_amend(new_text, date_arg=None, title=None):
+    """Replace the body of a subsection (keep the title line)."""
     with write_lock():
         lines = read_lines()
         _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
@@ -150,6 +156,7 @@ def cmd_amend(new_text, date_arg=None, title=None):
 
 
 def cmd_addend(new_text, date_arg=None, title=None):
+    """Append a paragraph to the bottom of a subsection's body."""
     with write_lock():
         lines = read_lines()
         _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
@@ -168,6 +175,7 @@ def cmd_addend(new_text, date_arg=None, title=None):
 
 
 def cmd_undo():
+    """Revert the most recent commit in the data repo (`git revert HEAD`)."""
     repo = os.path.dirname(DEVLOG)
     if not os.path.isdir(os.path.join(repo, ".git")):
         sys.exit("No git repo at devlog data dir — nothing to undo")
@@ -186,6 +194,7 @@ def cmd_undo():
 
 
 def cmd_retitle(date_arg, old_title, new_title):
+    """Rename a subsection in place, preserving the [HH:MM] timestamp."""
     target = parse_date_arg(date_arg)
     target_heading = target.strftime("## %B %-d, %Y")
     with write_lock():
@@ -209,6 +218,7 @@ def cmd_retitle(date_arg, old_title, new_title):
 
 
 def cmd_rm(date_arg, title, dry_run=False):
+    """Delete a subsection (and the date section if it becomes empty)."""
     target = parse_date_arg(date_arg)
     target_heading = target.strftime("## %B %-d, %Y")
 
@@ -219,6 +229,7 @@ def cmd_rm(date_arg, title, dry_run=False):
 
 
 def _rm_impl(target_heading, title, dry_run):
+    """Body of cmd_rm — separated so it can run with or without write_lock."""
     lines = read_lines()
 
     if not any(line.rstrip() == target_heading for line in lines):

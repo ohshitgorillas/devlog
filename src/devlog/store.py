@@ -1,3 +1,5 @@
+"""Filesystem and git operations on the devlog data file."""
+
 import contextlib
 import fcntl
 import os
@@ -38,6 +40,7 @@ def write_lock():
 
 
 def read_lines():
+    """Return the devlog file contents as a list of lines (with newlines)."""
     with open(DEVLOG, encoding="utf-8") as f:
         return f.readlines()
 

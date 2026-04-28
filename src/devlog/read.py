@@ -1,3 +1,5 @@
+"""Read-only commands: show, find, recent, list, last, exists, log, diff."""
+
 import json
 import os
 import subprocess
@@ -22,6 +24,7 @@ def _strip_heading(heading):
 
 
 def _entry_dict(heading, subs, with_bodies=True):
+    """Build a JSON-serializable dict for one date section."""
     out_subs = []
     for title_line, body_lines in subs:
         ts, t = parse_title_line(title_line)
@@ -33,6 +36,7 @@ def _entry_dict(heading, subs, with_bodies=True):
 
 
 def cmd_date(arg, json_out=False):
+    """Print the full day section for `arg` (YYYYMMDD or MMDD)."""
     target = parse_date_arg(arg)
     target_heading = target.strftime("## %B %-d, %Y")
 
@@ -51,6 +55,7 @@ def cmd_date(arg, json_out=False):
 
 
 def cmd_find(term, json_out=False):
+    """Print all subsections matching `term` (case-insensitive substring)."""
     term_lower = term.lower()
     sections = parse_sections(read_lines())
     matches = []
@@ -87,6 +92,7 @@ def cmd_find(term, json_out=False):
 
 
 def _ensure_repo():
+    """Return the data-repo path, exiting if no .git directory exists."""
     repo = os.path.dirname(DEVLOG)
     if not os.path.isdir(os.path.join(repo, ".git")):
         sys.exit("No git repo at devlog data dir")
@@ -94,6 +100,7 @@ def _ensure_repo():
 
 
 def cmd_log(n=20):
+    """Print the last `n` commits from the data repo."""
     repo = _ensure_repo()
     subprocess.run(
         ["git", "-C", repo, "log", f"-{n}", "--oneline"],
@@ -102,6 +109,7 @@ def cmd_log(n=20):
 
 
 def cmd_diff(ref="HEAD"):
+    """Print `git show REF` for the data repo."""
     repo = _ensure_repo()
     subprocess.run(
         ["git", "-C", repo, "show", ref],
@@ -110,6 +118,7 @@ def cmd_diff(ref="HEAD"):
 
 
 def cmd_exists(date_arg, title):
+    """Exit 0 if a subsection exists at (date, title), else exit 1."""
     target = parse_date_arg(date_arg)
     target_heading = target.strftime("## %B %-d, %Y")
     lines = read_lines()
@@ -118,6 +127,7 @@ def cmd_exists(date_arg, title):
 
 
 def cmd_last(json_out=False):
+    """Print the most recent subsection (heading + body)."""
     lines = read_lines()
     found = find_last_subsection(lines)
     if found is None:
@@ -134,6 +144,7 @@ def cmd_last(json_out=False):
 
 
 def cmd_list(json_out=False):
+    """Print every date heading and its subsection titles (no bodies)."""
     sections = parse_sections(read_lines())
     entries = []
     for heading, content in sections:
@@ -159,6 +170,7 @@ def cmd_list(json_out=False):
 
 
 def cmd_recent(n_days, json_out=False):
+    """Print all date sections within the last `n_days` (full bodies)."""
     cutoff = datetime.now() - timedelta(days=n_days)
     sections = parse_sections(read_lines())
     matches = []

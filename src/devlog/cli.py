@@ -1,3 +1,5 @@
+"""Command-line interface: argparse subcommands dispatched to read/write helpers."""
+
 import argparse
 import os
 import sys
@@ -33,6 +35,7 @@ def _resolve_body(arg):
 
 
 def build_parser():
+    """Construct the argparse top-level parser with every subcommand attached."""
     parser = argparse.ArgumentParser(
         prog="devlog",
         description="Append/read/edit ~/devlog.md",
@@ -128,6 +131,7 @@ def build_parser():
 
 
 def main():
+    """Run migration + manual-edit capture, then dispatch the requested subcommand."""
     migrate_if_needed()
     capture_manual_edits()
     parser = build_parser()

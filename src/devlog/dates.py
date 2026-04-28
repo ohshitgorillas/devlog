@@ -1,3 +1,5 @@
+"""Date helpers: parse user-supplied dates and format markdown headings."""
+
 from __future__ import annotations
 
 import sys
@@ -5,6 +7,7 @@ from datetime import datetime
 
 
 def today_heading() -> str:
+    """Return today's date as a markdown heading line, e.g. '## April 28, 2026'."""
     return datetime.now().strftime("## %B %-d, %Y")
 
 
