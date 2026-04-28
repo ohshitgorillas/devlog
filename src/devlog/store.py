@@ -38,7 +38,7 @@ def write_lock():
 
 
 def read_lines():
-    with open(DEVLOG) as f:
+    with open(DEVLOG, encoding="utf-8") as f:
         return f.readlines()
 
 
@@ -107,7 +107,7 @@ def write_lines(lines):
     os.makedirs(d, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=".devlog.", dir=d)
     try:
-        with os.fdopen(fd, "w") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.writelines(lines)
         os.replace(tmp, DEVLOG)
     except Exception:

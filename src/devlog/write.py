@@ -109,13 +109,15 @@ def cmd_edit(date_arg=None, title=None):
         _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
 
         editor = os.environ.get("EDITOR", "vim")
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tf:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".md", encoding="utf-8", delete=False
+        ) as tf:
             tf.writelines(lines[sub_start:sub_end])
             tmp_path = tf.name
 
         try:
             subprocess.run([editor, tmp_path], check=True)
-            with open(tmp_path) as f:
+            with open(tmp_path, encoding="utf-8") as f:
                 new_lines = f.readlines()
         finally:
             os.unlink(tmp_path)
