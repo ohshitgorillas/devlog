@@ -18,11 +18,17 @@ def parse_date_heading(line):
 
 
 def parse_date_arg(arg):
-    """Parse YYYYMMDD or MMDD into a datetime."""
+    """Parse YYYYMMDD or MMDD into a datetime. MMDD resolves to the most
+    recent past occurrence (devlog entries are always past): if the date
+    in the current year is in the future, fall back to the prior year."""
     arg = arg.strip()
     if len(arg) == 8:
         return datetime.strptime(arg, "%Y%m%d")
     elif len(arg) == 4:
-        return datetime.strptime(f"{datetime.now().year}{arg}", "%Y%m%d")
+        now = datetime.now()
+        candidate = datetime.strptime(f"{now.year}{arg}", "%Y%m%d")
+        if candidate.date() > now.date():
+            candidate = candidate.replace(year=now.year - 1)
+        return candidate
     else:
         sys.exit(f"Invalid date format '{arg}' — use YYYYMMDD or MMDD")
