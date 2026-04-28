@@ -2,6 +2,7 @@ import contextlib
 import fcntl
 import os
 import re
+import tempfile
 
 DEVLOG = os.path.expanduser("~/devlog.md")
 LOCKFILE = os.path.expanduser("~/.devlog.lock")
@@ -29,8 +30,19 @@ def read_lines():
 
 
 def write_lines(lines):
-    with open(DEVLOG, "w") as f:
-        f.writelines(lines)
+    """Atomic write: stage to a tempfile in the same directory, then
+    rename over the target. POSIX rename is atomic, so a crash mid-write
+    can never leave a truncated/corrupt devlog."""
+    d = os.path.dirname(DEVLOG) or "."
+    fd, tmp = tempfile.mkstemp(prefix=".devlog.", dir=d)
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.writelines(lines)
+        os.replace(tmp, DEVLOG)
+    except Exception:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+        raise
 
 
 def parse_sections(lines):
