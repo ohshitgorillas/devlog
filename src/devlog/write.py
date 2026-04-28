@@ -69,7 +69,9 @@ def insert_entry(title, body):
 
         block = build_block(title, body)
 
-        today_idx = next((i for i, l in enumerate(lines) if l.rstrip() == today), None)
+        today_idx = next(
+            (i for i, line in enumerate(lines) if line.rstrip() == today), None
+        )
 
         if today_idx is not None:
             pos = today_idx + 1
@@ -78,14 +80,15 @@ def insert_entry(title, body):
             lines = lines[:pos] + block + lines[pos:]
         else:
             first_date = next(
-                (i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None
+                (i for i, line in enumerate(lines) if DATE_PAT.match(line.rstrip())),
+                None,
             )
             section = [today + "\n", "\n"] + block
             if first_date is not None:
                 lines = lines[:first_date] + section + lines[first_date:]
             else:
                 title_line = next(
-                    (i for i, l in enumerate(lines) if l.startswith("# ")), 0
+                    (i for i, line in enumerate(lines) if line.startswith("# ")), 0
                 )
                 lines = (
                     lines[: title_line + 1] + ["\n"] + section + lines[title_line + 1 :]
@@ -185,7 +188,7 @@ def cmd_retitle(date_arg, old_title, new_title):
     target_heading = target.strftime("## %B %-d, %Y")
     with write_lock():
         lines = read_lines()
-        if not any(l.rstrip() == target_heading for l in lines):
+        if not any(line.rstrip() == target_heading for line in lines):
             sys.exit(f"No section for {target_heading}")
         found = find_subsection(lines, target_heading, old_title)
         if found is None:
@@ -216,7 +219,7 @@ def cmd_rm(date_arg, title, dry_run=False):
 def _rm_impl(target_heading, title, dry_run):
     lines = read_lines()
 
-    if not any(l.rstrip() == target_heading for l in lines):
+    if not any(line.rstrip() == target_heading for line in lines):
         sys.exit(f"No section for {target_heading}")
 
     found = find_subsection(lines, target_heading, title)
