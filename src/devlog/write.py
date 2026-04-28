@@ -162,16 +162,33 @@ def cmd_edit(date_arg: str | None = None, title: str | None = None) -> None:
     print(f"Edited: {new_lines[0].rstrip()}")
 
 
+def _ensure_today(lines: list[str], date_idx: int, op: str) -> None:
+    """Refuse to ``op`` (amend/addend) on a subsection whose date heading
+    is not today's. The unconditional ``[HH:MM] ...`` marker that
+    amend/addend writes reflects the current clock; stamping it onto a
+    past-date entry would imply that HH:MM happened on that past date."""
+    today = today_heading()
+    heading = lines[date_idx].rstrip()
+    if heading != today:
+        sys.exit(
+            f"Refusing to {op} entry under {heading}: timestamp marker "
+            f"reflects today ({today[3:]}). Use `devlog edit` to modify "
+            f"past-date entries without an automatic [HH:MM] prefix."
+        )
+
+
 def cmd_amend(
     new_text: str, date_arg: str | None = None, title: str | None = None
 ) -> None:
     """Replace the body of a subsection (keep the title line).
 
     The new body is always prefixed with a ``[HH:MM] AMENDED:`` marker
-    line so the amend time is visible inline."""
+    line so the amend time is visible inline. Refuses to operate on
+    past-date entries — use ``devlog edit`` for those."""
     with write_lock():
         lines = read_lines()
-        _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
+        date_idx, sub_start, sub_end = _resolve_target(lines, date_arg, title)
+        _ensure_today(lines, date_idx, "amend")
         title_line = lines[sub_start]
         now = datetime.now().strftime("%H:%M")
         body_lines = [f"[{now}] AMENDED:"] + new_text.strip().splitlines()
@@ -192,10 +209,12 @@ def cmd_addend(
 
     The first line of the appended paragraph is always prefixed with
     ``[HH:MM] ADDENDUM:`` so later additions read as deliberate temporal
-    events."""
+    events. Refuses to operate on past-date entries — use ``devlog
+    edit`` for those."""
     with write_lock():
         lines = read_lines()
-        _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
+        date_idx, sub_start, sub_end = _resolve_target(lines, date_arg, title)
+        _ensure_today(lines, date_idx, "addend")
         title_line = lines[sub_start]
         insert_pos = sub_end
         while insert_pos > sub_start + 1 and not lines[insert_pos - 1].strip():

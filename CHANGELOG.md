@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   modification time loses the temporal context when reading the entry
   itself.
 
+- `devlog amend` and `devlog addend` now refuse to operate on
+  past-date entries. Stamping today's `[HH:MM]` onto a section dated
+  yesterday or earlier would imply that time happened on the past
+  date. Use `devlog edit -d YYYYMMDD -t "Title"` to modify older
+  entries.
+
 ## [1.0.1] - 2026-04-28
 
 ### Fixed

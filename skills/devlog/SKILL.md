@@ -40,8 +40,8 @@ Default target = newest subsection. Pass `-d YYYYMMDD -t "Title"` to target a sp
 
 | Op | Command |
 |----|---------|
-| Append paragraph | `devlog addend "more context"` — auto-prefixed `[HH:MM] ADDENDUM:` |
-| Replace body, keep title | `devlog amend "new body"` — auto-prefixed `[HH:MM] AMENDED:` |
+| Append paragraph (today only) | `devlog addend "more context"` — auto-prefixed `[HH:MM] ADDENDUM:` |
+| Replace body, keep title (today only) | `devlog amend "new body"` — auto-prefixed `[HH:MM] AMENDED:` |
 | Open in $EDITOR | `devlog edit` |
 | Rename | `devlog retitle -d 20260428 -t "Old" --to "New"` |
 | Delete | `devlog rm -d 20260428 -t "Title"` |
@@ -85,6 +85,7 @@ devlog diff [REF]   # git show REF (default HEAD)
 - Never invent dates. Tool sets today.
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
 - `undo` reverts only the most recent commit. For older fixes: `git -C ~/.devlog revert <sha>`.
+- `amend` and `addend` only operate on today's entries. Modifying a past-date entry through them would stamp it with the current `[HH:MM]`, which would imply that time happened on the past date. Use `devlog edit -d YYYYMMDD -t "Title"` to modify past entries (no auto-timestamp).
 
 ## Failure modes
 

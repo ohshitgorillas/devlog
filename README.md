@@ -65,6 +65,8 @@ devlog rm -d 20260428 -t "Title"
 devlog rm -d 20260428 -t "Title" -n      # dry-run preview
 ```
 
+`amend` and `addend` only work on today's entries — they stamp the body with the current `[HH:MM]`, which would be wrong on a past-date section. Use `devlog edit -d YYYYMMDD -t "Title"` to modify older entries (no auto-timestamp).
+
 Repo commands:
 
 ```sh
