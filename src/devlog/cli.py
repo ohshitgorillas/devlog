@@ -1,6 +1,7 @@
 import argparse
 import sys
 
+from .migrate import migrate_if_needed
 from .read import cmd_date, cmd_exists, cmd_find, cmd_last, cmd_list, cmd_recent
 from .write import cmd_addend, cmd_amend, cmd_edit, cmd_rm, insert_entry
 
@@ -78,6 +79,7 @@ def build_parser():
 
 
 def main():
+    migrate_if_needed()
     parser = build_parser()
     args = parser.parse_args()
 

@@ -4,8 +4,8 @@ import os
 import re
 import tempfile
 
-DEVLOG = os.path.expanduser("~/devlog.md")
-LOCKFILE = os.path.expanduser("~/.devlog.lock")
+DEVLOG = os.environ.get("DEVLOG_FILE") or os.path.expanduser("~/.devlog/devlog.md")
+LOCKFILE = os.path.join(os.path.dirname(DEVLOG), ".devlog.lock")
 DATE_PAT = re.compile(r"^## [A-Z][a-z]+ \d{1,2}, \d{4}$")
 SUB_PAT = re.compile(r"^### ")
 TITLE_PAT = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
@@ -15,6 +15,7 @@ TITLE_PAT = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
 def write_lock():
     """Hold an exclusive flock for the duration of a read-modify-write op.
     Reads are not blocked (advisory lock; readers don't acquire it)."""
+    os.makedirs(os.path.dirname(LOCKFILE), exist_ok=True)
     fd = os.open(LOCKFILE, os.O_RDWR | os.O_CREAT, 0o600)
     try:
         fcntl.flock(fd, fcntl.LOCK_EX)
@@ -34,6 +35,7 @@ def write_lines(lines):
     rename over the target. POSIX rename is atomic, so a crash mid-write
     can never leave a truncated/corrupt devlog."""
     d = os.path.dirname(DEVLOG) or "."
+    os.makedirs(d, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=".devlog.", dir=d)
     try:
         with os.fdopen(fd, "w") as f:
