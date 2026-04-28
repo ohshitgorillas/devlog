@@ -60,6 +60,27 @@ def build_block(title, body):
     return lines
 
 
+def _insert_under_today(lines, today_idx, block):
+    """Insert `block` immediately under an existing today date heading."""
+    pos = today_idx + 1
+    if pos < len(lines) and not lines[pos].strip():
+        pos += 1
+    return lines[:pos] + block + lines[pos:]
+
+
+def _insert_new_section(lines, section):
+    """Prepend a brand-new date section above the existing latest section,
+    or at the top of the file if no date sections exist yet."""
+    first_date = next(
+        (i for i, line in enumerate(lines) if DATE_PAT.match(line.rstrip())),
+        None,
+    )
+    if first_date is not None:
+        return lines[:first_date] + section + lines[first_date:]
+    title_line = next((i for i, line in enumerate(lines) if line.startswith("# ")), 0)
+    return lines[: title_line + 1] + ["\n"] + section + lines[title_line + 1 :]
+
+
 def insert_entry(title, body):
     """Add a new subsection under today's date heading (creating it if needed)."""
     with write_lock():
@@ -73,31 +94,14 @@ def insert_entry(title, body):
             )
 
         block = build_block(title, body)
-
         today_idx = next(
             (i for i, line in enumerate(lines) if line.rstrip() == today), None
         )
 
         if today_idx is not None:
-            pos = today_idx + 1
-            if pos < len(lines) and not lines[pos].strip():
-                pos += 1
-            lines = lines[:pos] + block + lines[pos:]
+            lines = _insert_under_today(lines, today_idx, block)
         else:
-            first_date = next(
-                (i for i, line in enumerate(lines) if DATE_PAT.match(line.rstrip())),
-                None,
-            )
-            section = [today + "\n", "\n"] + block
-            if first_date is not None:
-                lines = lines[:first_date] + section + lines[first_date:]
-            else:
-                title_line = next(
-                    (i for i, line in enumerate(lines) if line.startswith("# ")), 0
-                )
-                lines = (
-                    lines[: title_line + 1] + ["\n"] + section + lines[title_line + 1 :]
-                )
+            lines = _insert_new_section(lines, [today + "\n", "\n"] + block)
 
         write_lines(lines)
         git_snapshot(f"add: {title}")

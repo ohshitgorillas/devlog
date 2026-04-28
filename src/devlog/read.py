@@ -54,12 +54,11 @@ def cmd_date(arg, json_out=False):
     sys.exit(f"No entry for {target.strftime('%B %-d, %Y')}")
 
 
-def cmd_find(term, json_out=False):
-    """Print all subsections matching `term` (case-insensitive substring)."""
+def _collect_matches(term):
+    """Return [(heading, [(title, body), ...]), ...] for all sections containing `term`."""
     term_lower = term.lower()
     sections = parse_sections(read_lines())
     matches = []
-
     for heading, content in sections:
         subs = parse_subsections(content)
         matching = [
@@ -69,26 +68,31 @@ def cmd_find(term, json_out=False):
         ]
         if matching:
             matches.append((heading, matching))
+    return matches
 
-    if not matches:
-        if json_out:
-            print(json.dumps([]))
-            return
-        sys.exit(f"No entries matching '{term}'")
 
+def _print_match_group(heading, subs):
+    """Print one (heading, matching subsections) group as text."""
+    print(heading)
+    for title, body in subs:
+        print(title)
+        body_text = "".join(body).rstrip()
+        if body_text:
+            print(body_text)
+
+
+def cmd_find(term, json_out=False):
+    """Print all subsections matching `term` (case-insensitive substring)."""
+    matches = _collect_matches(term)
     if json_out:
         print(json.dumps([_entry_dict(h, s) for h, s in matches], indent=2))
         return
-
+    if not matches:
+        sys.exit(f"No entries matching '{term}'")
     for i, (heading, subs) in enumerate(matches):
         if i > 0:
             print()
-        print(heading)
-        for title, body in subs:
-            print(title)
-            body_text = "".join(body).rstrip()
-            if body_text:
-                print(body_text)
+        _print_match_group(heading, subs)
 
 
 def _ensure_repo():
