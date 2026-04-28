@@ -1,4 +1,5 @@
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -152,6 +153,29 @@ def cmd_addend(new_text, date_arg=None, title=None):
         write_lines(lines)
         git_snapshot(f"addend: {_title_text(title_line)}")
     print(f"Added to: {title_line.rstrip()}")
+
+
+def cmd_retitle(date_arg, old_title, new_title):
+    target = parse_date_arg(date_arg)
+    target_heading = target.strftime("## %B %-d, %Y")
+    with write_lock():
+        lines = read_lines()
+        if not any(l.rstrip() == target_heading for l in lines):
+            sys.exit(f"No section for {target_heading}")
+        found = find_subsection(lines, target_heading, old_title)
+        if found is None:
+            sys.exit(f"No subsection '{old_title}' under {target_heading}")
+        _, sub_start, _ = found
+        old_line = lines[sub_start].rstrip()
+        ts_match = re.match(r"^### \[(\d{2}:\d{2})\] ", old_line)
+        if ts_match:
+            new_line = f"### [{ts_match.group(1)}] {new_title}\n"
+        else:
+            new_line = f"### {new_title}\n"
+        lines[sub_start] = new_line
+        write_lines(lines)
+        git_snapshot(f"retitle: {old_title} -> {new_title}")
+    print(f"Retitled: {old_title} -> {new_title}")
 
 
 def cmd_rm(date_arg, title, dry_run=False):

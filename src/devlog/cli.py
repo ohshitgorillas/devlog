@@ -4,7 +4,14 @@ import sys
 from .migrate import migrate_if_needed
 from .read import cmd_date, cmd_exists, cmd_find, cmd_last, cmd_list, cmd_recent
 from .store import capture_manual_edits
-from .write import cmd_addend, cmd_amend, cmd_edit, cmd_rm, insert_entry
+from .write import (
+    cmd_addend,
+    cmd_amend,
+    cmd_edit,
+    cmd_retitle,
+    cmd_rm,
+    insert_entry,
+)
 
 
 def _resolve_body(arg):
@@ -72,6 +79,11 @@ def build_parser():
     p_addend.add_argument("-d", "--date", help="target a specific subsection")
     p_addend.add_argument("-t", "--title", help="target a specific subsection")
 
+    p_retitle = sub.add_parser("retitle", help="rename existing subsection")
+    p_retitle.add_argument("-d", "--date", required=True)
+    p_retitle.add_argument("-t", "--title", required=True, help="current title")
+    p_retitle.add_argument("--to", required=True, help="new title", dest="new_title")
+
     p_rm = sub.add_parser("rm", help="delete named subsection")
     p_rm.add_argument("-d", "--date", required=True)
     p_rm.add_argument("-t", "--title", required=True)
@@ -107,6 +119,7 @@ def main():
         "edit": lambda: cmd_edit(args.date, args.title),
         "amend": lambda: cmd_amend(_resolve_body(args.body), args.date, args.title),
         "addend": lambda: cmd_addend(_resolve_body(args.body), args.date, args.title),
+        "retitle": lambda: cmd_retitle(args.date, args.title, args.new_title),
         "rm": lambda: cmd_rm(args.date, args.title, args.dry_run),
     }
     dispatch[args.cmd]()
