@@ -52,6 +52,28 @@ def init_repo(repo):
         _git(repo, "config", "user.name", "devlog")
 
 
+def capture_manual_edits():
+    """If the data file has uncommitted diffs vs HEAD, commit them as a
+    'manual edit' so direct edits (vim, sed, scp) are still captured in
+    git history. No-op if no repo or no diffs."""
+    repo = os.path.dirname(DEVLOG)
+    if not os.path.isdir(os.path.join(repo, ".git")):
+        return
+    fname = os.path.basename(DEVLOG)
+    try:
+        diff = _git(repo, "diff", "--quiet", "HEAD", "--", fname, check=False)
+        if diff.returncode == 0:
+            return
+        _git(repo, "add", fname)
+        _git(repo, "commit", "-q", "-m", "manual edit (captured)")
+        print(
+            f"note: captured manual edit to {DEVLOG}",
+            file=sys.stderr,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"warning: capture_manual_edits failed: {e}", file=sys.stderr)
+
+
 def git_snapshot(message):
     """Stage everything and commit. Best-effort: a failure here doesn't
     abort the surrounding write op (the data is already saved). No-op if
