@@ -13,6 +13,7 @@ from .store import (
     find_subsection,
     read_lines,
     write_lines,
+    write_lock,
 )
 
 
@@ -47,90 +48,98 @@ def build_block(title, body):
 
 
 def insert_entry(title, body):
-    lines = read_lines()
-    today = today_heading()
+    with write_lock():
+        lines = read_lines()
+        today = today_heading()
 
-    if title and find_subsection(lines, today, title) is not None:
-        sys.exit(
-            f"Subsection '{title}' already exists under {today}. "
-            f"Use a different title or `devlog amend`/`addend`."
-        )
+        if title and find_subsection(lines, today, title) is not None:
+            sys.exit(
+                f"Subsection '{title}' already exists under {today}. "
+                f"Use a different title or `devlog amend`/`addend`."
+            )
 
-    block = build_block(title, body)
+        block = build_block(title, body)
 
-    today_idx = next((i for i, l in enumerate(lines) if l.rstrip() == today), None)
+        today_idx = next((i for i, l in enumerate(lines) if l.rstrip() == today), None)
 
-    if today_idx is not None:
-        pos = today_idx + 1
-        if pos < len(lines) and not lines[pos].strip():
-            pos += 1
-        lines = lines[:pos] + block + lines[pos:]
-    else:
-        first_date = next((i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None)
-        section = [today + "\n", "\n"] + block
-        if first_date is not None:
-            lines = lines[:first_date] + section + lines[first_date:]
+        if today_idx is not None:
+            pos = today_idx + 1
+            if pos < len(lines) and not lines[pos].strip():
+                pos += 1
+            lines = lines[:pos] + block + lines[pos:]
         else:
-            title_line = next((i for i, l in enumerate(lines) if l.startswith("# ")), 0)
-            lines = lines[:title_line + 1] + ["\n"] + section + lines[title_line + 1:]
+            first_date = next((i for i, l in enumerate(lines) if DATE_PAT.match(l.rstrip())), None)
+            section = [today + "\n", "\n"] + block
+            if first_date is not None:
+                lines = lines[:first_date] + section + lines[first_date:]
+            else:
+                title_line = next((i for i, l in enumerate(lines) if l.startswith("# ")), 0)
+                lines = lines[:title_line + 1] + ["\n"] + section + lines[title_line + 1:]
 
-    write_lines(lines)
+        write_lines(lines)
     print(f"Entry added under {today}")
 
 
 def cmd_edit(date_arg=None, title=None):
-    lines = read_lines()
-    _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
+    # Lock is held for the duration of the editor session so that a
+    # concurrent write can't shift line numbers under us. Editor sessions
+    # are interactive so other devlog writers will block — acceptable
+    # for a solo-user tool.
+    with write_lock():
+        lines = read_lines()
+        _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
 
-    editor = os.environ.get("EDITOR", "vim")
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tf:
-        tf.writelines(lines[sub_start:sub_end])
-        tmp_path = tf.name
+        editor = os.environ.get("EDITOR", "vim")
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as tf:
+            tf.writelines(lines[sub_start:sub_end])
+            tmp_path = tf.name
 
-    try:
-        subprocess.run([editor, tmp_path], check=True)
-        with open(tmp_path) as f:
-            new_lines = f.readlines()
-    finally:
-        os.unlink(tmp_path)
+        try:
+            subprocess.run([editor, tmp_path], check=True)
+            with open(tmp_path) as f:
+                new_lines = f.readlines()
+        finally:
+            os.unlink(tmp_path)
 
-    while new_lines and not new_lines[-1].strip():
-        new_lines.pop()
-    if not new_lines:
-        sys.exit("Edit aborted: empty result")
-    new_lines.append("\n")
+        while new_lines and not new_lines[-1].strip():
+            new_lines.pop()
+        if not new_lines:
+            sys.exit("Edit aborted: empty result")
+        new_lines.append("\n")
 
-    lines = lines[:sub_start] + new_lines + lines[sub_end:]
-    write_lines(lines)
+        lines = lines[:sub_start] + new_lines + lines[sub_end:]
+        write_lines(lines)
     print(f"Edited: {new_lines[0].rstrip()}")
 
 
 def cmd_amend(new_text, date_arg=None, title=None):
-    lines = read_lines()
-    _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
-    title_line = lines[sub_start]
-    new_body = ["\n"]
-    for line in new_text.strip().splitlines():
-        new_body.append(line + "\n")
-    new_body.append("\n")
-    lines = lines[:sub_start] + [title_line] + new_body + lines[sub_end:]
-    write_lines(lines)
+    with write_lock():
+        lines = read_lines()
+        _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
+        title_line = lines[sub_start]
+        new_body = ["\n"]
+        for line in new_text.strip().splitlines():
+            new_body.append(line + "\n")
+        new_body.append("\n")
+        lines = lines[:sub_start] + [title_line] + new_body + lines[sub_end:]
+        write_lines(lines)
     print(f"Amended: {title_line.rstrip()}")
 
 
 def cmd_addend(new_text, date_arg=None, title=None):
-    lines = read_lines()
-    _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
-    title_line = lines[sub_start]
-    insert_pos = sub_end
-    while insert_pos > sub_start + 1 and not lines[insert_pos - 1].strip():
-        insert_pos -= 1
-    addend = ["\n"]
-    for line in new_text.strip().splitlines():
-        addend.append(line + "\n")
-    addend.append("\n")
-    lines = lines[:insert_pos] + addend + lines[insert_pos:]
-    write_lines(lines)
+    with write_lock():
+        lines = read_lines()
+        _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
+        title_line = lines[sub_start]
+        insert_pos = sub_end
+        while insert_pos > sub_start + 1 and not lines[insert_pos - 1].strip():
+            insert_pos -= 1
+        addend = ["\n"]
+        for line in new_text.strip().splitlines():
+            addend.append(line + "\n")
+        addend.append("\n")
+        lines = lines[:insert_pos] + addend + lines[insert_pos:]
+        write_lines(lines)
     print(f"Added to: {title_line.rstrip()}")
 
 
@@ -138,6 +147,13 @@ def cmd_rm(date_arg, title, dry_run=False):
     target = parse_date_arg(date_arg)
     target_heading = target.strftime("## %B %-d, %Y")
 
+    if dry_run:
+        return _rm_impl(target_heading, title, dry_run=True)
+    with write_lock():
+        return _rm_impl(target_heading, title, dry_run=False)
+
+
+def _rm_impl(target_heading, title, dry_run):
     lines = read_lines()
 
     date_idx = next((i for i, l in enumerate(lines) if l.rstrip() == target_heading), None)

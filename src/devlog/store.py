@@ -1,10 +1,26 @@
+import contextlib
+import fcntl
 import os
 import re
 
 DEVLOG = os.path.expanduser("~/devlog.md")
+LOCKFILE = os.path.expanduser("~/.devlog.lock")
 DATE_PAT = re.compile(r"^## [A-Z][a-z]+ \d{1,2}, \d{4}$")
 SUB_PAT = re.compile(r"^### ")
 TITLE_PAT = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
+
+
+@contextlib.contextmanager
+def write_lock():
+    """Hold an exclusive flock for the duration of a read-modify-write op.
+    Reads are not blocked (advisory lock; readers don't acquire it)."""
+    fd = os.open(LOCKFILE, os.O_RDWR | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
 
 
 def read_lines():
