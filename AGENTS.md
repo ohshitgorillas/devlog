@@ -32,8 +32,8 @@ Default target = newest subsection. Pass `-d YYYYMMDD -t "Title"` to target a sp
 
 | Op | Command |
 |----|---------|
-| Append paragraph | `devlog addend "more context"` |
-| Replace body, keep title | `devlog amend "new body"` |
+| Append paragraph | `devlog addend "more context"` — auto-prefixed `[HH:MM] ADDENDUM:` |
+| Replace body, keep title | `devlog amend "new body"` — auto-prefixed `[HH:MM] AMENDED:` |
 | Open in $EDITOR | `devlog edit` |
 | Rename | `devlog retitle -d 20260428 -t "Old" --to "New"` |
 | Delete | `devlog rm -d 20260428 -t "Title"` |

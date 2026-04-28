@@ -58,8 +58,8 @@ Edit commands (default to newest subsection; pass `-d` + `-t` to target a specif
 
 ```sh
 devlog edit                   # open in $EDITOR (fallback: vim)
-devlog amend "new body"       # replace body, keep title
-devlog addend "extra para"    # append paragraph to body
+devlog amend "new body"       # replace body, prefixed "[HH:MM] AMENDED:"
+devlog addend "extra para"    # append paragraph, prefixed "[HH:MM] ADDENDUM:"
 devlog retitle -d 20260428 -t "Old" --to "New"
 devlog rm -d 20260428 -t "Title"
 devlog rm -d 20260428 -t "Title" -n      # dry-run preview

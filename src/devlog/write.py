@@ -165,13 +165,18 @@ def cmd_edit(date_arg: str | None = None, title: str | None = None) -> None:
 def cmd_amend(
     new_text: str, date_arg: str | None = None, title: str | None = None
 ) -> None:
-    """Replace the body of a subsection (keep the title line)."""
+    """Replace the body of a subsection (keep the title line).
+
+    The new body is always prefixed with a ``[HH:MM] AMENDED:`` marker
+    line so the amend time is visible inline."""
     with write_lock():
         lines = read_lines()
         _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
         title_line = lines[sub_start]
+        now = datetime.now().strftime("%H:%M")
+        body_lines = [f"[{now}] AMENDED:"] + new_text.strip().splitlines()
         new_body = ["\n"]
-        for line in new_text.strip().splitlines():
+        for line in body_lines:
             new_body.append(line + "\n")
         new_body.append("\n")
         lines = lines[:sub_start] + [title_line] + new_body + lines[sub_end:]
@@ -183,7 +188,11 @@ def cmd_amend(
 def cmd_addend(
     new_text: str, date_arg: str | None = None, title: str | None = None
 ) -> None:
-    """Append a paragraph to the bottom of a subsection's body."""
+    """Append a paragraph to the bottom of a subsection's body.
+
+    The first line of the appended paragraph is always prefixed with
+    ``[HH:MM] ADDENDUM:`` so later additions read as deliberate temporal
+    events."""
     with write_lock():
         lines = read_lines()
         _, sub_start, sub_end = _resolve_target(lines, date_arg, title)
@@ -191,8 +200,12 @@ def cmd_addend(
         insert_pos = sub_end
         while insert_pos > sub_start + 1 and not lines[insert_pos - 1].strip():
             insert_pos -= 1
+        body_lines = new_text.strip().splitlines()
+        if body_lines:
+            now = datetime.now().strftime("%H:%M")
+            body_lines[0] = f"[{now}] ADDENDUM: {body_lines[0]}"
         addend = ["\n"]
-        for line in new_text.strip().splitlines():
+        for line in body_lines:
             addend.append(line + "\n")
         addend.append("\n")
         lines = lines[:insert_pos] + addend + lines[insert_pos:]

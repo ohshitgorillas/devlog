@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- `devlog addend` now always prefixes the appended paragraph with
+  `[HH:MM] ADDENDUM:` so later additions read as deliberate temporal
+  events.
+- `devlog amend` now always prepends a `[HH:MM] AMENDED:` marker line
+  to the replaced body for the same reason.
+
+  Both behaviors are unconditional — there is no opt-out flag. The
+  inline marker is always wanted; relying on `git log` to recover
+  modification time loses the temporal context when reading the entry
+  itself.
+
 ## [1.0.1] - 2026-04-28
 
 ### Fixed
