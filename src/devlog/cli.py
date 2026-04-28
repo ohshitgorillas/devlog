@@ -53,16 +53,21 @@ def build_parser():
 
     p_show = sub.add_parser("show", help="print full day section")
     p_show.add_argument("date", metavar="DATE", help="YYYYMMDD or MMDD")
+    p_show.add_argument("--json", action="store_true", dest="json_out")
 
     p_find = sub.add_parser("find", help="search subsections (case-insensitive)")
     p_find.add_argument("term")
+    p_find.add_argument("--json", action="store_true", dest="json_out")
 
     p_recent = sub.add_parser("recent", help="last N days (default 7)")
     p_recent.add_argument("days", nargs="?", type=int, default=7)
+    p_recent.add_argument("--json", action="store_true", dest="json_out")
 
-    sub.add_parser("list", help="print dates + titles only (no bodies)")
+    p_list = sub.add_parser("list", help="print dates + titles only (no bodies)")
+    p_list.add_argument("--json", action="store_true", dest="json_out")
 
-    sub.add_parser("last", help="print newest subsection")
+    p_last = sub.add_parser("last", help="print newest subsection")
+    p_last.add_argument("--json", action="store_true", dest="json_out")
 
     p_exists = sub.add_parser(
         "exists",
@@ -130,11 +135,11 @@ def main():
             f"{args.title} - {args.name}" if args.name else args.title,
             _resolve_body(args.entry),
         ),
-        "show": lambda: cmd_date(args.date),
-        "find": lambda: cmd_find(args.term),
-        "recent": lambda: cmd_recent(args.days),
-        "list": cmd_list,
-        "last": cmd_last,
+        "show": lambda: cmd_date(args.date, args.json_out),
+        "find": lambda: cmd_find(args.term, args.json_out),
+        "recent": lambda: cmd_recent(args.days, args.json_out),
+        "list": lambda: cmd_list(args.json_out),
+        "last": lambda: cmd_last(args.json_out),
         "exists": lambda: cmd_exists(args.date, args.title),
         "edit": lambda: cmd_edit(args.date, args.title),
         "amend": lambda: cmd_amend(_resolve_body(args.body), args.date, args.title),

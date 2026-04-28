@@ -11,6 +11,16 @@ LOCKFILE = os.path.join(os.path.dirname(DEVLOG), ".devlog.lock")
 DATE_PAT = re.compile(r"^## [A-Z][a-z]+ \d{1,2}, \d{4}$")
 SUB_PAT = re.compile(r"^### ")
 TITLE_PAT = re.compile(r"^### (?:\[\d{2}:\d{2}\] )?(.*)$")
+TITLE_TS_PAT = re.compile(r"^### (?:\[(\d{2}:\d{2})\] )?(.*)$")
+
+
+def parse_title_line(line):
+    """Split a '### [HH:MM] Title' line into (ts, title). ts is None
+    if no timestamp prefix is present."""
+    m = TITLE_TS_PAT.match(line.rstrip())
+    if m:
+        return m.group(1), m.group(2)
+    return None, line.rstrip()
 
 
 @contextlib.contextmanager
