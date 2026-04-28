@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Code-fence false positives in the markdown parser. Lines inside
+  fenced code blocks (```` ``` ```` or `~~~`) were matched against
+  `DATE_PAT` / `SUB_PAT`, so a body containing `### something` or
+  `## Month D, YYYY` inside a fence would silently split the entry.
+  Walkers in `store.py` now consult `compute_outside_fence(lines)`
+  before triggering heading detection; pattern-checking call sites in
+  `write.py` were updated to consult the same vector.
+- Locale-sensitive date headings. `today_heading` and
+  `parse_date_heading` previously used `strftime`/`strptime` `%B`,
+  which reads `LC_TIME`. Running under a non-English locale produced
+  headings the parser couldn't read back. `dates.py` now formats and
+  parses with an explicit English `MONTHS` list, and all five
+  `strftime("## %B %-d, %Y")` call sites use the new
+  `format_date_heading(dt)` helper.
+
+### Documentation
+
+- Added `README.md` (human-facing, motivation + full usage).
+- Added `AGENTS.md` (terse AI-agent reference: when to log, command
+  tables, style/hard rules, failure modes).
+
 ## [1.0.0] - 2026-04-28
 
 First tagged release. Imports an existing single-file `~/.local/bin/devlog`
