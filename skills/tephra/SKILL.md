@@ -27,6 +27,19 @@ Tool for keeping a topic-organized development journal as Obsidian-style markdow
 - Backticks for paths, commands, identifiers. HTML-tag-looking tokens (`<name>`, `<HOST>`) are auto-backticked on insert.
 - Match existing entries in the same topic — check `tephra last -T TOPIC` or `tephra recent 3 -T TOPIC` first.
 - No marketing voice. No "successfully". No restating the title.
+- **Always cross-link related prior entries with `--related`.** Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra recent 14 -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [(HH:MM)] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
+
+### When to add a related link
+
+Link to any prior entry that:
+
+- introduced the thing this entry modifies, fixes, or extends ("introduced", "added", "first deployed");
+- documented a bug or symptom that this entry fixes;
+- documented a related decision, alert, or threshold this entry tunes;
+- spans the same incident, refactor, or migration across multiple sessions;
+- touches an adjacent subsystem the reader might want to jump to (e.g. an `O11y` alert change linking to the `Bittorrent` exporter that emits the metric).
+
+If you can't find anything to link after a quick `tephra find`, that's a valid outcome — but explicitly searched > silently skipped. The default assumption should be "this almost certainly relates to *something* prior; find it."
 
 ## Add new entry
 
@@ -127,7 +140,8 @@ tephra diff [REF]   # git show REF (default HEAD)
 - Never invent dates. Tool sets today.
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
 - `undo` reverts only the most recent commit. For older fixes: `git -C "$(tephra config path)" revert <sha>` against the vault repo.
-- Before `add`: search today with `tephra recent 1` or `tephra find TERM --days 1`. If a related entry exists, `addend` to it. Otherwise `add`.
+- Before `add`: search today with `tephra recent 1` or `tephra find TERM --days 1`. If a same-day same-topic entry already covers this change, `addend` to it instead of creating a new one.
+- Before `add` (separate pass, looking further back): `tephra find` for the subsystem and adjacent topics. Pass every relevant prior entry as `--related`. Skipping this step orphans the entry from the rest of the journal.
 
 ## Failure modes
 
