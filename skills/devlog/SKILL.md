@@ -9,13 +9,24 @@ description: >
   writes, locking, and per-write git auto-commits.
 ---
 
-Tool for keeping a dated development log. One file (`~/.devlog/devlog.md`), `## Date` headings with `### [HH:MM] Title` subsections. Every CLI write auto-commits to a private git repo at `~/.devlog/`. Direct edits captured on next CLI invocation.
+Tool for keeping a dated and timestamped development log. One file (`~/.devlog/devlog.md`), `## Date` headings with `### [HH:MM] Title` subsections. Every CLI write auto-commits to a private git repo at `~/.devlog/`. Direct edits captured on next CLI invocation.
 
-## When to log
+## When and what to log
 
-- After any non-trivial change to system state, infra, config, or code outside a git repo.
+**NOTE TO USER**: edit this section to your preferred scope. Agents: if this line remains, confirm scope before logging.
+
+- After any non-trivial change to system state, infra, config, or code.
 - One subsection per logical change. Don't bundle unrelated edits.
-- Skip: pure read ops, throwaway exploration, trivial fixes already captured in git.
+- Skip: pure read ops, throwaway exploration, trivial fixes already captured in git, the act of logging
+
+## How to log
+
+- User will supply the scope of the log.
+- Be terse, concise, and precise
+- Lead with what changed. Then files. Then why if non-obvious.
+- Backticks for paths, commands, identifiers.
+- Match existing entries in the same log — check `devlog last` or `devlog recent 3` first.
+- No marketing voice. No "successfully". No restating the title.
 
 ## Add new entry
 
@@ -71,14 +82,6 @@ devlog log [N]      # commit history (default 20)
 devlog diff [REF]   # git show REF (default HEAD)
 ```
 
-## Style for entries
-
-- Lead with what changed. Then files. Then why if non-obvious.
-- Backticks for paths, commands, identifiers.
-- Match existing entries in the same log — check `devlog last` or `devlog recent 3` first.
-- No marketing voice. No "successfully". No restating the title.
-- Don't log the act of logging.
-
 ## Hard rules
 
 - Never `echo >> ~/devlog.md`, `sed -i`, or otherwise touch the file directly. Direct edits get captured on next CLI run, but you lose the structured commit message.
@@ -86,6 +89,7 @@ devlog diff [REF]   # git show REF (default HEAD)
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
 - `undo` reverts only the most recent commit. For older fixes: `git -C ~/.devlog revert <sha>`.
 - `amend` and `addend` only operate on today's entries. Modifying a past-date entry through them would stamp it with the current `[HH:MM]`, which would imply that time happened on the past date. Use `devlog edit -d YYYYMMDD -t "Title"` to modify past entries (no auto-timestamp).
+- Always check for relevant entries under the current date (`devlog --recent 1` or `devlog find TERM`) to amend/append before creating a new section. Always prefer `addend` over adding new entries.
 
 ## Failure modes
 
