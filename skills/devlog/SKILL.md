@@ -75,6 +75,24 @@ Default target = newest subsection. Pass `-d YYYYMMDD -t "Title"` to target a sp
 
 Prefer `--json` when piping into another tool or parsing programmatically.
 
+## When to read
+
+Reach for the log to answer questions about prior work — what was changed, when, and why. Map the user's prompt shape to a read command:
+
+| Prompt shape | Command |
+|--------------|---------|
+| "summarize recent changes to wireguard over the last 2 weeks" | `devlog find "wireguard" --days 14 --json` |
+| "have I touched nginx this week?" | `devlog find "nginx" --days 7` |
+| "what did I do yesterday?" | `devlog show YYYYMMDD` (yesterday's date) |
+| "what did I last do to X?" | `devlog find "X"` then take newest match |
+| "what was the most recent entry?" | `devlog last` |
+| "what's been logged this month?" | `devlog recent 30` |
+| "give me everything since April 1" | `devlog find "" --since 20260401` (or `devlog recent N` if N covers it) |
+| "list all titles" | `devlog list` |
+| "did I ever fix Z?" | `devlog find "Z"` |
+
+Use `--json` whenever you'll feed the output back into reasoning — the structured `{date, ts, title, body}` shape is easier to summarize than raw markdown.
+
 ## Repo introspection
 
 ```sh
