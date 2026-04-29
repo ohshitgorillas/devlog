@@ -125,3 +125,7 @@ git -C ~/.devlog revert <ref>  # selectively undo any past commit
 ## For AI agents
 
 See [`AGENTS.md`](AGENTS.md) for an AI-optimized reference covering when to log, command tables, style guidance, and failure modes.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
