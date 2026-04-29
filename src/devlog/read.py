@@ -90,9 +90,23 @@ def _print_match_group(heading: str, subs: list[tuple[str, list[str]]]) -> None:
             print(body_text)
 
 
-def cmd_find(term: str, json_out: bool = False) -> None:
-    """Print all subsections matching `term` (case-insensitive substring)."""
+def cmd_find(
+    term: str,
+    json_out: bool = False,
+    since: datetime | None = None,
+) -> None:
+    """Print all subsections matching `term` (case-insensitive substring).
+
+    If `since` is given, only entries with a date heading on or after
+    `since` (compared by date, not time) are returned."""
     matches = _collect_matches(term)
+    if since is not None:
+        cutoff = since.date()
+        matches = [
+            (h, subs)
+            for h, subs in matches
+            if (dt := parse_date_heading(h)) is not None and dt.date() >= cutoff
+        ]
     if json_out:
         print(json.dumps([_entry_dict(h, s) for h, s in matches], indent=2))
         return

@@ -48,7 +48,7 @@ Default target = newest subsection. Pass `-d YYYYMMDD -t "Title"` to target a sp
 |----|---------|------|
 | Day section | `devlog show YYYYMMDD` | `--json` |
 | Day (MMDD) | `devlog show 0428` (most recent past) | `--json` |
-| Search | `devlog find TERM` (case-insensitive substring) | `--json` |
+| Search | `devlog find TERM` (case-insensitive substring; add `--days N` or `--since YYYYMMDD\|MMDD` to limit window) | `--json` |
 | Last N days | `devlog recent [N]` (default 7) | `--json` |
 | Index | `devlog list` (dates + titles, no bodies) | `--json` |
 | Newest | `devlog last` | `--json` |

@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from datetime import datetime, timedelta
 
 from . import __version__
+from .dates import parse_date_arg
 from .migrate import migrate_if_needed
 from .read import (
     cmd_date,
@@ -103,6 +105,18 @@ def _add_read_subparsers(
     p_find = sub.add_parser("find", help="search subsections (case-insensitive)")
     p_find.add_argument("term")
     p_find.add_argument("--json", action="store_true", dest="json_out")
+    g_find = p_find.add_mutually_exclusive_group()
+    g_find.add_argument(
+        "--days",
+        type=int,
+        metavar="N",
+        help="restrict to entries within the last N days",
+    )
+    g_find.add_argument(
+        "--since",
+        metavar="DATE",
+        help="restrict to entries on or after DATE (YYYYMMDD or MMDD)",
+    )
 
     p_recent = sub.add_parser("recent", help="last N days (default 7)")
     p_recent.add_argument("days", nargs="?", type=int, default=7)
@@ -153,6 +167,15 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _resolve_find_since(args: argparse.Namespace) -> datetime | None:
+    """Translate `--days` / `--since` on `find` into a cutoff datetime."""
+    if getattr(args, "days", None) is not None:
+        return datetime.now() - timedelta(days=args.days)
+    if getattr(args, "since", None) is not None:
+        return parse_date_arg(args.since)
+    return None
+
+
 def main() -> None:
     """Run migration + manual-edit capture, then dispatch the requested subcommand."""
     migrate_if_needed()
@@ -170,7 +193,7 @@ def main() -> None:
             _resolve_body(args.entry),
         ),
         "show": lambda: cmd_date(args.date, args.json_out),
-        "find": lambda: cmd_find(args.term, args.json_out),
+        "find": lambda: cmd_find(args.term, args.json_out, _resolve_find_since(args)),
         "recent": lambda: cmd_recent(args.days, args.json_out),
         "list": lambda: cmd_list(args.json_out),
         "last": lambda: cmd_last(args.json_out),

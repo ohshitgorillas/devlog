@@ -67,7 +67,7 @@ Default target = newest subsection. Pass `-d YYYYMMDD -t "Title"` to target a sp
 |----|---------|------|
 | Day section | `devlog show YYYYMMDD` | `--json` |
 | Day (MMDD) | `devlog show 0428` (most recent past) | `--json` |
-| Search | `devlog find TERM` (case-insensitive substring) | `--json` |
+| Search | `devlog find TERM` (case-insensitive substring; add `--days N` or `--since YYYYMMDD\|MMDD` to limit window) | `--json` |
 | Last N days | `devlog recent [N]` (default 7) | `--json` |
 | Index | `devlog list` (dates + titles, no bodies) | `--json` |
 | Newest | `devlog last` | `--json` |
@@ -89,7 +89,7 @@ devlog diff [REF]   # git show REF (default HEAD)
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
 - `undo` reverts only the most recent commit. For older fixes: `git -C ~/.devlog revert <sha>`.
 - `amend` and `addend` only operate on today's entries. Modifying a past-date entry through them would stamp it with the current `[HH:MM]`, which would imply that time happened on the past date. Use `devlog edit -d YYYYMMDD -t "Title"` to modify past entries (no auto-timestamp).
-- Always check for relevant entries under the current date (`devlog --recent 1` or `devlog find TERM`) to amend/append before creating a new section. Always prefer `addend` over adding new entries.
+- Always check for relevant entries under the current date (`devlog recent 1` or `devlog find TERM`) to amend/append before creating a new section. Always prefer `addend` over adding new entries.
 
 ## Failure modes
 

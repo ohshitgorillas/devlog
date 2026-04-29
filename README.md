@@ -10,7 +10,7 @@ I started keeping `~/devlog.md` as an informal way to track changes on my homela
 - If the same thing breaks again, the fix is already written down.
 - If I ever have to reinstall or start over, I have a log of every change, package, and setting that mattered.
 
-Enter Claude Code and its ilk: in spite of clear instructions `CLAUDE.md`, agents would decide randomly to either append or prepend, change format, dump the entire file, etc. It took no less than five frustrated prompts per session to keep the devlog consistent. There's also the issue of parsing such a file to provide agents relevant context: `grep` doesn't work when entries are split across multiple lines, requiring me to manually copy and paste the relevant sections.
+Enter Claude Code and its ilk: in spite of clear instructions in `CLAUDE.md`, agents would decide randomly to either append or prepend, change format, dump the entire file, etc. It took no less than five frustrated prompts per session to keep the devlog consistent. There's also the issue of parsing such a file to provide agents relevant context: `grep` doesn't work when entries are split across multiple lines, requiring me to manually copy and paste the relevant sections.
 
 `devlog` provides a clean, structured way for humans and AI agents alike to maintain and reference such a log. It's specifically intended for scenarios where `git` or `jrnl` are the wrong tools: tracking system-wide or cross-system changes that span multiple repos and unversioned paths (no one's committing `/`), keeping a durable record without standing up encryption or multiple journals you don't need, and scenarios where a structured approach beats free-form prose. The same shape applies anywhere you want a durable, searchable log that isn't tied to a specific repo: dotfile tweaks, ops actions on a production host, household IT chores, research notes, anything where "what did I change six months ago and why" is a question you'd like to be able to answer.
 
@@ -54,6 +54,8 @@ Read commands:
 devlog show 20260428          # full day section
 devlog show 0428              # MMDD: most recent past 04-28
 devlog find "wireguard"       # case-insensitive substring search
+devlog find "wg" --days 7     # ... restricted to the last 7 days
+devlog find "wg" --since 20260401   # ... or to entries on/after a date
 devlog recent 7               # last 7 calendar days (default 7)
 devlog list                   # dates + titles only, no bodies
 devlog last                   # newest subsection

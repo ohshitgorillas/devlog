@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `devlog find` now accepts `--days N` (restrict matches to the last
+  N days) and `--since YYYYMMDD|MMDD` (restrict to entries on or
+  after a specific date). The two flags are mutually exclusive.
+
 ### Changed
 
 - `devlog addend` now always prefixes the appended paragraph with
