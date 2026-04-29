@@ -1,4 +1,4 @@
-"""Entry point for `python -m devlog`."""
+"""Entry point for `python -m tephra`."""
 
 from .cli import main
 

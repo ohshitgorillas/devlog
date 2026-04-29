@@ -3,15 +3,15 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "devlog"
-version = "1.0.1"
-description = "Append/read/edit ~/devlog.md"
+name = "tephra"
+version = "2.0.0"
+description = "Topic-based markdown journal CLI for Obsidian-style vaults"
 requires-python = ">=3.9"
 license = "MIT"
 license-files = ["LICENSE"]
 
 [project.scripts]
-devlog = "devlog.cli:main"
+tephra = "tephra.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -22,7 +22,7 @@ src = ["src"]
 
 [tool.mypy]
 python_version = "3.9"
-files = ["src/devlog"]
+files = ["src/tephra"]
 check_untyped_defs = true
 
 [tool.pylint.main]
@@ -30,3 +30,10 @@ fail-under = 10.0
 
 [tool.pylint.format]
 max-line-length = 100
+
+[tool.pylint."messages control"]
+disable = [
+    "too-many-arguments",
+    "too-many-positional-arguments",
+    "too-many-locals",
+]

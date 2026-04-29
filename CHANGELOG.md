@@ -5,32 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [2.0.0] - 2026-04-28
+
+Renamed from `devlog` to `tephra`. Restructured from single-file (`~/.devlog/devlog.md`) to a topic-organized vault (one Markdown file per topic, format compatible with Obsidian).
 
 ### Added
 
-- `devlog find` now accepts `--days N` (restrict matches to the last
-  N days) and `--since YYYYMMDD|MMDD` (restrict to entries on or
-  after a specific date). The two flags are mutually exclusive.
+- Topic-based vault layout: each topic is its own file (`Topic.md`) inside
+  `$TEPHRA_VAULT` (default `$XDG_DATA_HOME/tephra/vault`).
+- `tephra topic list` and `tephra topic add NAME` for topic management.
+- `--related "Topic#YYYY-MM-DD [(HH:MM)] — Title"` flag on `add`/`amend`/`addend`
+  to author validated `[[Topic#anchor]]` wikilinks. Refs are resolved against
+  the target topic file at invocation time; invalid refs error before any
+  write. Repeatable.
+- `--no-related` flag on `amend` to drop the Related line.
+- `addend --related` appends to the existing Related line, deduped.
+- Auto-backticking of HTML-tag-looking tokens (e.g. `<name>` → `` `<name>` ``)
+  in entry bodies, skipping content inside fenced code blocks.
+- Cross-topic read commands by default. `show`, `find`, `recent`, `list`, `last`
+  span all topics; pass `-T TOPIC` to restrict to one.
+- ISO date format in headings: `## YYYY-MM-DD (HH:MM) — Title`.
+- `find --days N` / `--since DATE` window restriction (carried over from v1).
 
 ### Changed
 
-- `devlog addend` now always prefixes the appended paragraph with
-  `[HH:MM] ADDENDUM:` so later additions read as deliberate temporal
-  events.
-- `devlog amend` now always prepends a `[HH:MM] AMENDED:` marker line
-  to the replaced body for the same reason.
+- Heading format: `## YYYY-MM-DD (HH:MM) — Title` (single H2 per entry,
+  em-dash, ISO date). Replaces the v1 `## Month D, YYYY` + `### [HH:MM] Title`
+  two-level structure. Time uses parentheses, not square brackets, so
+  `[[Topic#anchor]]` wikilinks don't break on the heading text.
+- New entries are inserted at the top of the topic file (newest-first within
+  each topic).
+- Date parsing accepts `YYYY-MM-DD`, `YYYYMMDD`, or `MMDD`.
+- Vault git repo at `$TEPHRA_VAULT` replaces v1's `~/.devlog/` repo. Auto-commits
+  on every CLI write, captures direct edits on next invocation.
+- `amend` preserves the existing `**Related:**` line by default; pass
+  `--related` to rewrite it or `--no-related` to drop it.
 
-  Both behaviors are unconditional — there is no opt-out flag. The
-  inline marker is always wanted; relying on `git log` to recover
-  modification time loses the temporal context when reading the entry
-  itself.
+### Removed
 
-- `devlog amend` and `devlog addend` now refuse to operate on
-  past-date entries. Stamping today's `[HH:MM]` onto a section dated
-  yesterday or earlier would imply that time happened on the past
-  date. Use `devlog edit -d YYYYMMDD -t "Title"` to modify older
-  entries.
+- `edit` subcommand. With per-topic files, opening the file in any editor
+  (Obsidian GUI, vim, etc.) is direct and ergonomic; CLI-mediated `$EDITOR`
+  splicing was redundant. Direct edits are still auto-captured to git.
+- `[HH:MM] AMENDED:` / `[HH:MM] ADDENDUM:` inline markers on `amend`/`addend`.
+  With the time embedded in the entry heading itself, the markers were
+  redundant noise.
+- The today-only restriction on `amend`/`addend`. Past-date entries can be
+  modified directly.
+- `--name NAME` / `$DEVLOG_NAME` author-suffix flag.
+- `migrate.py` (one-shot legacy-path migration from v0).
+
+### Migration
+
+There is no automated migration path from a v1 `~/.devlog/devlog.md` file to
+a v2 topic-based vault — the topic-categorization step is inherently manual.
+The v1 data file is left untouched at `~/.devlog/devlog.md`. Approach: copy
+or summarize the v1 file's contents into per-topic vault files by hand (or
+with an LLM), then point `tephra` at the new vault via `$TEPHRA_VAULT`.
+
+## [1.0.1] - 2026-04-28
 
 ## [1.0.1] - 2026-04-28
 
@@ -96,5 +128,6 @@ script and reorganizes it into a packaged, type-hinted, lint-gated CLI.
   10.00/10.
 - GitHub Actions CI workflow runs all five gates on push and pull request.
 
+[2.0.0]: https://github.com/ohshitgorillas/tephra/releases/tag/v2.0.0
 [1.0.1]: https://github.com/ohshitgorillas/devlog/releases/tag/v1.0.1
 [1.0.0]: https://github.com/ohshitgorillas/devlog/releases/tag/v1.0.0

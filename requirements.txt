@@ -1,1 +1,1 @@
-# devlog has no runtime dependencies (stdlib only).
+# tephra has no runtime dependencies (stdlib only).

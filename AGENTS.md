@@ -1,59 +1,74 @@
-# devlog — AI agent instructions
+# tephra — AI agent instructions
 
-Terse reference for AI assistants writing to `~/.devlog/devlog.md` via the `devlog` CLI. Never write the file directly. Reading direct = fine.
+Terse reference for AI assistants writing to a tephra vault via the `tephra` CLI. Never write topic files directly. Reading direct = fine.
 
 ## When to log
 
 - After any non-trivial change to system state, infra, config, code outside a git repo, or any change you'd want recoverable context for later.
-- One subsection per topic, per day. Group related changes; don't bundle unrelated ones.
-- Before `add`: search today with `devlog recent 1` or `devlog find TERM --days 1`. If a related entry exists, `addend` to it. Otherwise `add`.
+- One entry per topic, per day per change. Group related changes; don't bundle unrelated ones.
+- Before `add`: search today with `tephra recent 1` or `tephra find TERM --days 1`. If a related entry exists, `addend` to it. Otherwise `add`.
 - Skip: pure read ops, throwaway exploration, trivial typo fixes already captured in git.
 
 ## Add new entry
 
 ```sh
-devlog add -t "Brief title" -e "What changed, which files, why if non-obvious."
+tephra add -T TOPIC -t "Brief title" -e "What changed, which files, why if non-obvious."
 ```
 
-- Title: imperative, ≤60 chars. No date prefix (tool adds `[HH:MM]`).
+- `-T TOPIC` is required. Topic must already exist (see `tephra topic list`); create with `tephra topic add NAME` if needed.
+- Title: imperative, ≤60 chars.
 - Entry: factual + terse. What changed → files touched → why (only if non-obvious).
-- Title collision under same date = error. Pick distinct title or use `amend`/`addend`.
+- Title collision on same date in same topic = error. Pick distinct title or use `amend`/`addend`.
 
 Multi-line body:
 
 ```sh
-devlog add -t "Title" -e $'line1\nline2\nline3'
+tephra add -T TOPIC -t "Title" -e $'line1\nline2\nline3'
 # or
-some-cmd | devlog add -t "Title" -e -
+some-cmd | tephra add -T TOPIC -t "Title" -e -
 ```
+
+Cross-link with `--related` (repeatable, validated):
+
+```sh
+tephra add -T O11y -t "Title" -e "body" \
+  --related "Bittorrent#2026-04-24 — peer port metric" \
+  --related "Network#2026-04-22 (14:31) — wg topology"
+```
+
+Anchor format: `Topic#YYYY-MM-DD [(HH:MM)] — Title`.
 
 ## Edit / extend / fix
 
-Default target = newest subsection. Pass `-d YYYYMMDD -t "Title"` to target a specific one.
+Default target = newest entry in the topic. Pass `-d DATE -t "Title"` to target a specific one (`-d` accepts `YYYY-MM-DD`, `YYYYMMDD`, or `MMDD`).
 
 | Op | Command |
 |----|---------|
-| Append paragraph (today only) | `devlog addend "more context"` — auto-prefixed `[HH:MM] ADDENDUM:` |
-| Replace body, keep title (today only) | `devlog amend "new body"` — auto-prefixed `[HH:MM] AMENDED:` |
-| Open in $EDITOR | `devlog edit` |
-| Rename | `devlog retitle -d 20260428 -t "Old" --to "New"` |
-| Delete | `devlog rm -d 20260428 -t "Title"` |
-| Preview delete | `devlog rm -d 20260428 -t "Title" -n` |
-| Revert last commit | `devlog undo` |
+| Append paragraph | `tephra addend -T TOPIC "more context"` |
+| Append + extend Related | `tephra addend -T TOPIC "..." --related "Topic#anchor"` |
+| Replace body, keep heading + Related | `tephra amend -T TOPIC "new body"` |
+| Replace body + rewrite Related | `tephra amend -T TOPIC "..." --related "Topic#anchor"` |
+| Replace body + drop Related | `tephra amend -T TOPIC "..." --no-related` |
+| Rename | `tephra retitle -T TOPIC -d 2026-04-28 -t "Old" --to "New"` |
+| Delete | `tephra rm -T TOPIC -d 2026-04-28 -t "Title"` |
+| Preview delete | `tephra rm -T TOPIC -d 2026-04-28 -t "Title" -n` |
+| Revert last commit | `tephra undo` |
 
-`amend`/`addend`/`edit` accept `-` for stdin body.
+`amend`/`addend` accept `-` for stdin body.
 
 ## Read
 
+Cross-topic by default. Pass `-T TOPIC` to restrict.
+
 | Op | Command | JSON |
 |----|---------|------|
-| Day section | `devlog show YYYYMMDD` | `--json` |
-| Day (MMDD) | `devlog show 0428` (most recent past) | `--json` |
-| Search | `devlog find TERM` (case-insensitive substring; add `--days N` or `--since YYYYMMDD\|MMDD` to limit window) | `--json` |
-| Last N days | `devlog recent [N]` (default 7) | `--json` |
-| Index | `devlog list` (dates + titles, no bodies) | `--json` |
-| Newest | `devlog last` | `--json` |
-| Existence check | `devlog exists -d YYYYMMDD -t "Title"` (exit 0/1) | — |
+| Entries on a date | `tephra show YYYY-MM-DD` | `--json` |
+| Date (MMDD) | `tephra show 0428` (most recent past) | `--json` |
+| Search | `tephra find TERM` (case-insensitive substring; `--days N` or `--since DATE` to limit window) | `--json` |
+| Last N days | `tephra recent [N]` (default 7) | `--json` |
+| Index | `tephra list` (headings only) | `--json` |
+| Newest | `tephra last` | `--json` |
+| Existence check | `tephra exists -T TOPIC -d DATE -t "Title"` (exit 0/1) | — |
 
 Prefer `--json` when piping into another tool or parsing programmatically.
 
@@ -63,48 +78,46 @@ Reach for the log to answer questions about prior work. Map prompt shape to comm
 
 | Prompt shape | Command |
 |--------------|---------|
-| "changes to wireguard over the last 2 weeks" | `devlog find "wireguard" --days 14 --json` |
-| "nginx broke overnight" | `devlog find "nginx" --days 2` |
-| "summarize yesterday's work" | `devlog show YYYYMMDD` (yesterday's date) |
-| "what did I last do to X?" | `devlog find "X"` then take newest match |
-| "see the most recent entry" | `devlog last` |
-| "summarize all project changes since April 1" | `devlog find "project" --since 20260401` |
-| "did I ever fix Z?" | `devlog find "Z"` |
+| "changes to wireguard over the last 2 weeks" | `tephra find "wireguard" --days 14 --json` |
+| "nginx broke overnight" | `tephra find "nginx" --days 2` |
+| "summarize yesterday's work" | `tephra show YYYY-MM-DD` (yesterday's date) |
+| "what did I last do to X?" | `tephra find "X"` then take newest match |
+| "see the most recent entry" | `tephra last` |
+| "summarize all project changes since April 1" | `tephra find "project" --since 2026-04-01` |
+| "did I ever fix Z?" | `tephra find "Z"` |
 
-Use `--json` when feeding output back into reasoning — the structured `{date, ts, title, body}` shape is easier to summarize than raw markdown.
+Use `--json` when feeding output back into reasoning — the structured `{topic, date, time, title, body, related}` shape is easier to summarize than raw markdown.
 
 ## Repo introspection
 
 ```sh
-devlog log [N]      # commit history (default 20)
-devlog diff [REF]   # git show REF (default HEAD)
+tephra log [N]      # commit history of vault repo (default 20)
+tephra diff [REF]   # git show REF (default HEAD)
 ```
 
 ## Style for entries
 
 - Lead with what changed. Then files. Then why if non-obvious.
-- Use backticks for paths, commands, identifiers.
-- Match existing entries in the same log — check `devlog last` or `devlog recent 3` first.
+- Use backticks for paths, commands, identifiers. HTML-tag-looking tokens (`<name>`, `<HOST>`) are auto-backticked on insert.
+- Match existing entries in the same topic — check `tephra last -T TOPIC` or `tephra recent 3 -T TOPIC` first.
 - No marketing voice. No "successfully". No restating the title.
 - Don't log the act of logging.
 
 ## Hard rules
 
-- Never `echo >> ~/devlog.md`, `sed -i`, or otherwise touch the file directly. Direct edits are captured on next CLI run, but you lose the structured commit message.
+- Never `echo >>` to a topic file, `sed -i`, or otherwise touch files directly. Direct edits are captured on next CLI run, but you lose the structured commit message.
 - Never invent dates. Today's date is set by the tool.
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
-- `undo` reverts only the most recent commit. For older fixes, use `git -C ~/.devlog revert <sha>`.
-- `amend` and `addend` refuse past-date targets. Use `devlog edit -d YYYYMMDD -t "Title"` to modify older entries (no auto-timestamp).
+- `undo` reverts only the most recent commit. For older fixes, run `git -C $TEPHRA_VAULT revert <sha>` against the vault repo.
 
 ## Failure modes
 
-- "Subsection 'X' already exists under ..." → title collision. Pick distinct title or use `addend` to extend the existing one.
-- "No subsection 'X' under ..." → wrong title or wrong date. Run `devlog list` or `devlog show <date>` to find correct title.
-- "No entries" → empty log; `add` first.
-- "No entry for ..." (`show`) → that date has no section.
+- "Entry 'X' already exists on YYYY-MM-DD in topic '...'" → title collision. Pick distinct title or `addend` to extend the existing one.
+- "No entry 'X' on YYYY-MM-DD in topic '...'" → wrong title, date, or topic. Run `tephra list -T TOPIC` to find correct title.
+- "Unknown topic '...'. Known: ..." → typo or missing topic. Run `tephra topic list`; create with `tephra topic add NAME` if needed.
+- "Related ref: no entry '...'" → cross-link target doesn't exist. Verify with `tephra find` or `tephra list -T TOPIC`.
+- "No entries" → empty topic / vault; `add` first.
 
 ## Env
 
-- `DEVLOG_FILE` — override data path.
-- `DEVLOG_NAME` — author suffix appended to titles (`### [HH:MM] Title - name`). Or pass `-n NAME` per `add`.
-- `EDITOR` — used by `devlog edit`.
+- `TEPHRA_VAULT` — override vault dir (default `$XDG_DATA_HOME/tephra/vault`, fallback `$HOME/.local/share/tephra/vault`).

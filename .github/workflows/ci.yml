@@ -20,12 +20,12 @@ jobs:
           pip install -e .
           pip install -r requirements-dev.txt
       - name: ruff
-        run: ruff check src/devlog
+        run: ruff check src/tephra
       - name: ruff format
-        run: ruff format --check src/devlog
+        run: ruff format --check src/tephra
       - name: mypy
         run: mypy
       - name: pylint
-        run: pylint src/devlog
+        run: pylint src/tephra
       - name: xenon (radon CC gate)
-        run: xenon --max-absolute B --max-modules B --max-average A src/devlog
+        run: xenon --max-absolute B --max-modules B --max-average A src/tephra
