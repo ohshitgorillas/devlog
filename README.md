@@ -2,17 +2,19 @@
 
 A small CLI for keeping a dated development log in a single Markdown file at `~/.devlog/devlog.md`. Entries are organized as `## Date` headings with `### [HH:MM] Title` subsections under each. Every CLI write auto-commits to a private git repo in the same directory, so nothing is lost and bad writes can be reverted.
 
-## Why it exists
+## Why devlog
 
-This tool started as a workaround for a recurring frustration with AI coding assistants: when asked to record what they just did in a `CHANGELOG.md` or development log, they could not consistently decide whether to put the new entry at the top or the bottom of the file. Some assistants would prepend, some would append, some would do both in the same session, and the resulting file would drift into a confused mess of newest-first and oldest-first sections that no human or model could later parse reliably.
+I started keeping `~/devlog.md` as an informal way to track changes on my homelab servers. The reasons for such a log are obvious:
 
-`devlog` removes that decision. New subsections always go under today's date heading, and today's date heading always sits at the top of the file. Newest-first ordering is enforced by the tool, not by the writer's discretion.
+- If something breaks, I have a reference for exactly what I last did to it.
+- If the same thing breaks again, the fix is already written down.
+- If I ever have to reinstall or start over, I have a log of every change, package, and setting that mattered.
 
-It is also intended for cases where a development log is genuinely useful but git is the wrong fit. The original use case here was tracking system-wide changes on a homelab server, where edits live in `/etc`, in `/srv`, in systemd units, in firewall rules, in container compose files scattered across the filesystem. Committing `/` to a single repo is absurd, but the work still benefits from a written record. `devlog` gives you one without forcing the underlying changes into version control.
+Enter Claude Code and its ilk: in spite of clear instructions `CLAUDE.md`, agents would decide randomly to either append or prepend, change format, dump the entire file, etc. It took no less than five frustrated prompts per session to keep the devlog consistent. There's also the issue of parsing such a file to provide agents relevant context: `grep` doesn't work when entries are split across multiple lines, requiring me to manually copy and paste the relevant sections.
 
-The same shape applies anywhere you want a durable, searchable log that isn't tied to a specific repo: dotfile tweaks, ops actions on a production host, household IT chores, research notes, anything where "what did I change last Tuesday and why" is a question you'd like to be able to answer six months later.
+`devlog` provides a clean, structured way for humans and AI agents alike to maintain and reference such a log. It's specifically intended for scenarios where `git` or `jrnl` are the wrong tools: tracking system-wide or cross-system changes that span multiple repos and unversioned paths (no one's committing `/`), keeping a durable record without standing up encryption or multiple journals you don't need, and scenarios where a structured approach beats free-form prose. The same shape applies anywhere you want a durable, searchable log that isn't tied to a specific repo: dotfile tweaks, ops actions on a production host, household IT chores, research notes, anything where "what did I change six months ago and why" is a question you'd like to be able to answer.
 
-## What it gives you
+## What devlog provides
 
 - A single Markdown file at `~/.devlog/devlog.md`, organized as `## Date` headings with `### [HH:MM] Title` subsections.
 - Atomic writes (tempfile + `os.replace`), so a crash mid-write cannot leave the file corrupt.
@@ -21,6 +23,10 @@ The same shape applies anywhere you want a durable, searchable log that isn't ti
 - Read commands (`show`, `find`, `recent`, `list`, `last`, `exists`) with optional `--json` output, suitable for piping into other tools or AI agents.
 - Edit commands (`edit`, `amend`, `addend`, `retitle`, `rm`) that target the newest subsection by default, or any subsection via `--date` + `--title`.
 - An `undo` command that wraps `git revert HEAD` on the data repo, so even a bad write is recoverable without reaching into git directly.
+
+## What devlog doesn't provide
+
+Encryption. Bring your own, or avoid entering sensitive data.
 
 ## Install
 
@@ -116,8 +122,4 @@ git -C ~/.devlog revert <ref>  # selectively undo any past commit
 
 ## For AI agents
 
-See [`AGENTS.md`](AGENTS.md) for a terse, AI-optimized reference covering when to log, command tables, style guidance, and failure modes.
-
-## Migration from the legacy script
-
-If you previously used the original single-file `~/devlog.md` shell script, the first invocation of the packaged CLI moves the data to `~/.devlog/devlog.md`, leaves a back-compat symlink at `~/devlog.md`, and seeds a git repo with an `import existing devlog` baseline commit. The migration is idempotent and is a no-op once the new path exists or `DEVLOG_FILE` is set.
+See [`AGENTS.md`](AGENTS.md) for an AI-optimized reference covering when to log, command tables, style guidance, and failure modes.
