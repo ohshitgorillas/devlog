@@ -18,19 +18,51 @@ RELATED_PAT = re.compile(r"^\*\*Related:\*\*\s*(.+?)\s*$")
 _FENCE_PAT = re.compile(r"^(?:```|~~~)")
 
 
+def config_path() -> str:
+    """Return the path to the per-user vault-pointer config file."""
+    xdg = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return os.path.join(xdg, "tephra", "vault")
+
+
+def _read_config_vault() -> str | None:
+    """Return the vault path stored in the config file, or None if absent."""
+    path = config_path()
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            value = f.read().strip()
+    except OSError:
+        return None
+    return os.path.expanduser(value) if value else None
+
+
+def vault_source() -> tuple[str, str]:
+    """Return ``(resolved_vault_path, source)`` for diagnostic output."""
+    cfg = _read_config_vault()
+    if cfg:
+        return cfg, f"config file ({config_path()})"
+    xdg = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+    return os.path.join(xdg, "tephra", "vault"), "default"
+
+
 def vault_dir() -> str:
     """Return the configured vault directory.
 
     Resolution order:
-      1. ``$TEPHRA_VAULT`` if set
-      2. ``$XDG_DATA_HOME/tephra/vault``
-      3. ``$HOME/.local/share/tephra/vault``
+      1. Path stored in ``$XDG_CONFIG_HOME/tephra/vault`` (or ``~/.config/...``)
+      2. ``$XDG_DATA_HOME/tephra/vault`` (or ``~/.local/share/...``)
     """
-    explicit = os.environ.get("TEPHRA_VAULT")
-    if explicit:
-        return os.path.expanduser(explicit)
-    xdg = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
-    return os.path.join(xdg, "tephra", "vault")
+    return vault_source()[0]
+
+
+def write_config_vault(path: str) -> None:
+    """Persist ``path`` as the vault location in the user config file."""
+    target = os.path.expanduser(path)
+    cfg = config_path()
+    os.makedirs(os.path.dirname(cfg), exist_ok=True)
+    with open(cfg, "w", encoding="utf-8") as f:
+        f.write(target + "\n")
 
 
 def lockfile() -> str:

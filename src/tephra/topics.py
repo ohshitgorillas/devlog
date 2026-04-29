@@ -1,4 +1,4 @@
-"""Topic discovery, validation, creation."""
+"""Topic discovery, validation, creation, and vault config."""
 
 from __future__ import annotations
 
@@ -7,10 +7,13 @@ import re
 import sys
 
 from .store import (
+    config_path,
     ensure_vault,
     git_snapshot,
     topic_path,
     vault_dir,
+    vault_source,
+    write_config_vault,
     write_lines,
     write_lock,
 )
@@ -86,3 +89,24 @@ def cmd_topic_list() -> None:
 def cmd_topic_add(name: str) -> None:
     """Create a new topic file."""
     create_topic(name)
+
+
+def cmd_config_vault(path: str) -> None:
+    """Persist ``path`` as the vault location in the user config file."""
+    write_config_vault(path)
+    resolved, _ = vault_source()
+    print(f"Wrote vault path to {config_path()}")
+    print(f"Vault: {resolved}")
+
+
+def cmd_config_show() -> None:
+    """Print the resolved vault path and its source."""
+    resolved, source = vault_source()
+    print(f"Vault: {resolved}")
+    print(f"Source: {source}")
+    print(f"Config file: {config_path()}")
+
+
+def cmd_config_path() -> None:
+    """Print the resolved vault path with no decoration (for shell scripting)."""
+    print(vault_dir())

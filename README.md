@@ -1,6 +1,6 @@
 # tephra
 
-A small CLI for keeping a topic-organized development log in a directory of Markdown files at `$XDG_DATA_HOME/tephra/vault/` (override with `$TEPHRA_VAULT`). Each topic is its own file (`Topic.md`), with entries organized as `## YYYY-MM-DD (HH:MM) — Title` headings sorted newest-first. Every CLI write auto-commits to a private git repo in the same directory, so nothing is lost and bad writes can be reverted.
+A small CLI for keeping a topic-organized development log as a directory of Markdown files. Each topic is its own file (`Topic.md`), with entries organized as `## YYYY-MM-DD (HH:MM) — Title` headings sorted newest-first. Every CLI write auto-commits to a private git repo in the vault directory, so nothing is lost and bad writes can be reverted.
 
 The format is hand-editable in any text editor and renders cleanly in [Obsidian](https://obsidian.md/), where wikilinks (`[[Topic#anchor]]`) double as cross-references between entries.
 
@@ -114,12 +114,19 @@ tephra amend -T TOPIC - < new_body.txt
 
 ## Configuration
 
-- `TEPHRA_VAULT` — override the vault directory. Default: `$XDG_DATA_HOME/tephra/vault` (typically `~/.local/share/tephra/vault`).
+The vault path is stored in `$XDG_CONFIG_HOME/tephra/vault` (typically `~/.config/tephra/vault`):
+
+```sh
+tephra config vault /path/to/your/vault   # set
+tephra config show                        # inspect resolved path
+```
+
+Default if unset: `$XDG_DATA_HOME/tephra/vault` (typically `~/.local/share/tephra/vault`).
 
 ## Data layout
 
 ```
-$TEPHRA_VAULT/
+<vault>/
 ├── Topic1.md          # one file per topic, H1 + H2 entries
 ├── Topic2.md
 ├── ...
@@ -151,13 +158,13 @@ The vault is a normal directory of markdown files — point Obsidian at it and e
 
 ## Recovery
 
-The git repo at `$TEPHRA_VAULT` is the source of truth for history. If a write went wrong:
+The git repo at the vault root is the source of truth for history. If a write went wrong:
 
 ```sh
 tephra undo                            # revert most recent commit
 tephra log                             # commit history
 tephra diff <ref>                      # inspect a past version
-git -C $TEPHRA_VAULT revert <ref>      # selectively undo any past commit
+git -C "$(tephra config path)" revert <ref>   # selectively undo any past commit
 ```
 
 ## For AI agents

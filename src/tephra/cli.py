@@ -19,7 +19,13 @@ from .read import (
     cmd_show,
 )
 from .store import capture_manual_edits
-from .topics import cmd_topic_add, cmd_topic_list
+from .topics import (
+    cmd_config_path,
+    cmd_config_show,
+    cmd_config_vault,
+    cmd_topic_add,
+    cmd_topic_list,
+)
 from .write import (
     cmd_addend,
     cmd_amend,
@@ -153,6 +159,17 @@ def _add_topic_subparsers(sub: argparse._SubParsersAction) -> None:
     p_tadd.add_argument("name")
 
 
+def _add_config_subparsers(sub: argparse._SubParsersAction) -> None:
+    p_config = sub.add_parser("config", help="vault location configuration")
+    config_sub = p_config.add_subparsers(dest="config_cmd", metavar="SUBCOMMAND")
+    p_vault = config_sub.add_parser("vault", help="set the vault path")
+    p_vault.add_argument("path", help="vault directory")
+    config_sub.add_parser("show", help="print resolved vault path + source")
+    config_sub.add_parser(
+        "path", help="print resolved vault path only (for shell scripting)"
+    )
+
+
 def _add_repo_subparsers(sub: argparse._SubParsersAction) -> None:
     p_log = sub.add_parser("log", help="show vault repo commit history")
     p_log.add_argument("n", nargs="?", type=int, default=20)
@@ -176,6 +193,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_write_subparsers(sub)
     _add_read_subparsers(sub)
     _add_topic_subparsers(sub)
+    _add_config_subparsers(sub)
     _add_repo_subparsers(sub)
     return parser
 
@@ -198,6 +216,17 @@ def _dispatch_topic(args: argparse.Namespace, parser: argparse.ArgumentParser) -
         parser.parse_args([args.cmd, "--help"])
 
 
+def _dispatch_config(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    if args.config_cmd == "vault":
+        cmd_config_vault(args.path)
+    elif args.config_cmd == "show":
+        cmd_config_show()
+    elif args.config_cmd == "path":
+        cmd_config_path()
+    else:
+        parser.parse_args([args.cmd, "--help"])
+
+
 def main() -> None:
     """Capture manual vault edits, then dispatch the requested subcommand."""
     capture_manual_edits()
@@ -210,6 +239,10 @@ def main() -> None:
 
     if args.cmd == "topic":
         _dispatch_topic(args, parser)
+        return
+
+    if args.cmd == "config":
+        _dispatch_config(args, parser)
         return
 
     dispatch = {

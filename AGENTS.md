@@ -108,7 +108,7 @@ tephra diff [REF]   # git show REF (default HEAD)
 - Never `echo >>` to a topic file, `sed -i`, or otherwise touch files directly. Direct edits are captured on next CLI run, but you lose the structured commit message.
 - Never invent dates. Today's date is set by the tool.
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
-- `undo` reverts only the most recent commit. For older fixes, run `git -C $TEPHRA_VAULT revert <sha>` against the vault repo.
+- `undo` reverts only the most recent commit. For older fixes, run `git -C "$(tephra config path)" revert <sha>` against the vault repo.
 
 ## Failure modes
 
@@ -118,6 +118,6 @@ tephra diff [REF]   # git show REF (default HEAD)
 - "Related ref: no entry '...'" → cross-link target doesn't exist. Verify with `tephra find` or `tephra list -T TOPIC`.
 - "No entries" → empty topic / vault; `add` first.
 
-## Env
+## Vault location
 
-- `TEPHRA_VAULT` — override vault dir (default `$XDG_DATA_HOME/tephra/vault`, fallback `$HOME/.local/share/tephra/vault`).
+The vault path is stored in `$XDG_CONFIG_HOME/tephra/vault` (typically `~/.config/tephra/vault`). Set with `tephra config vault PATH`; inspect with `tephra config show`. Default if unset: `$XDG_DATA_HOME/tephra/vault` (typically `~/.local/share/tephra/vault`).

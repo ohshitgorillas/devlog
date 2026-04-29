@@ -137,6 +137,6 @@ tephra diff [REF]   # git show REF (default HEAD)
 - `Related ref: no entry '...'` → cross-link target doesn't exist. Verify with `tephra find` or `tephra list -T TOPIC`.
 - `No entries` → empty topic; `add` first.
 
-## Env
+## Vault location
 
-- `TEPHRA_VAULT` — override vault dir (default `$XDG_DATA_HOME/tephra/vault`, fallback `$HOME/.local/share/tephra/vault`).
+The vault path is stored in `$XDG_CONFIG_HOME/tephra/vault` (typically `~/.config/tephra/vault`). Set with `tephra config vault PATH`; inspect with `tephra config show`. Default if unset: `$XDG_DATA_HOME/tephra/vault` (typically `~/.local/share/tephra/vault`).
