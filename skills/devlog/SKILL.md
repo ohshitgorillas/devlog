@@ -16,7 +16,7 @@ Tool for keeping a dated and timestamped development log. One file (`~/.devlog/d
 **NOTE TO USER**: edit this section to your preferred scope. Agents: if this line remains, confirm scope before logging.
 
 - After any non-trivial change to system state, infra, config, or code.
-- One subsection per logical change. Don't bundle unrelated edits.
+- One subsection per topic, per day. Group related changes; don't bundle unrelated ones.
 - Skip: pure read ops, throwaway exploration, trivial fixes already captured in git, the act of logging
 
 ## How to log
@@ -89,7 +89,7 @@ devlog diff [REF]   # git show REF (default HEAD)
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
 - `undo` reverts only the most recent commit. For older fixes: `git -C ~/.devlog revert <sha>`.
 - `amend` and `addend` only operate on today's entries. Modifying a past-date entry through them would stamp it with the current `[HH:MM]`, which would imply that time happened on the past date. Use `devlog edit -d YYYYMMDD -t "Title"` to modify past entries (no auto-timestamp).
-- Always check for relevant entries under the current date (`devlog recent 1` or `devlog find TERM`) to amend/append before creating a new section. Always prefer `addend` over adding new entries.
+- Before `add`: search today with `devlog recent 1` or `devlog find TERM --days 1`. If a related entry exists, `addend` to it. Otherwise `add`.
 
 ## Failure modes
 

@@ -5,7 +5,8 @@ Terse reference for AI assistants writing to `~/.devlog/devlog.md` via the `devl
 ## When to log
 
 - After any non-trivial change to system state, infra, config, code outside a git repo, or any change you'd want recoverable context for later.
-- One subsection per logical change. Don't bundle unrelated edits.
+- One subsection per topic, per day. Group related changes; don't bundle unrelated ones.
+- Before `add`: search today with `devlog recent 1` or `devlog find TERM --days 1`. If a related entry exists, `addend` to it. Otherwise `add`.
 - Skip: pure read ops, throwaway exploration, trivial typo fixes already captured in git.
 
 ## Add new entry
