@@ -169,7 +169,7 @@ git -C "$(tephra config path)" revert <ref>   # selectively undo any past commit
 
 ## For AI agents
 
-See [`AGENTS.md`](AGENTS.md) for an AI-optimized reference covering when to log, command tables, style guidance, and failure modes.
+See [`skills/tephra/SKILL.md`](skills/tephra/SKILL.md) for an AI-optimized reference covering when to log, command tables, style guidance, and failure modes. The file is a Claude Code skill (loaded by Claude Code's skill discovery via the YAML frontmatter) but is human-readable as a regular markdown reference.
 
 ## License
 

@@ -126,7 +126,7 @@ tephra diff [REF]   # git show REF (default HEAD)
 - Never `echo >>` to a topic file, `sed -i`, or otherwise touch files directly. Direct edits get captured on next CLI run, but you lose the structured commit message.
 - Never invent dates. Tool sets today.
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
-- `undo` reverts only the most recent commit. For older fixes: `git -C "$(tephra ... )" revert <sha>` against the vault repo.
+- `undo` reverts only the most recent commit. For older fixes: `git -C "$(tephra config path)" revert <sha>` against the vault repo.
 - Before `add`: search today with `tephra recent 1` or `tephra find TERM --days 1`. If a related entry exists, `addend` to it. Otherwise `add`.
 
 ## Failure modes

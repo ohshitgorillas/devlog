@@ -37,6 +37,7 @@ Renamed from `devlog` to `tephra`. Restructured from single-file (`~/.devlog/dev
 - The today-only restriction on `amend`/`addend`. Past-date entries can be modified directly.
 - `--name NAME` / `$DEVLOG_NAME` author-suffix flag.
 - `migrate.py` (one-shot legacy-path migration from v0).
+- `AGENTS.md`. Content was a near-duplicate of `skills/tephra/SKILL.md`; merged into SKILL.md (which already carries the YAML frontmatter for Claude Code skill discovery).
 
 ### Migration
 
@@ -52,7 +53,7 @@ There is no automated migration path from a v1 `~/.devlog/devlog.md` file to a v
 ### Documentation
 
 - Added `README.md` (human-facing, motivation + full usage).
-- Added `AGENTS.md` (terse AI-agent reference: when to log, command tables, style/hard rules, failure modes).
+- Added `AGENTS.md` (terse AI-agent reference: when to log, command tables, style/hard rules, failure modes). _Removed in v2.0.0; merged into `skills/tephra/SKILL.md`._
 
 ## [1.0.0] - 2026-04-28
 
