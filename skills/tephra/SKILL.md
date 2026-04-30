@@ -140,6 +140,7 @@ tephra diff [REF]   # git show REF (default HEAD)
 - `undo` reverts only the most recent commit. For older fixes: `git -C "$(tephra config path)" revert <sha>` against the vault repo.
 - Before `add`: search today with `tephra recent 1` or `tephra find TERM --days 1`. If a same-day same-topic entry already covers this change, `addend` to it instead of creating a new one.
 - Before `add` (separate pass, looking further back): `tephra find` for the subsystem and adjacent topics. Pass every relevant prior entry as `--related`. Skipping this step orphans the entry from the rest of the journal.
+- Never include sensitive information.
 
 ## Failure modes
 
