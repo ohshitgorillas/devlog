@@ -13,7 +13,6 @@ Tool for keeping a topic-organized development journal as Obsidian-style markdow
 
 ## When and what to log
 
-- User will supply the scope.
 - After any non-trivial change to system state, infra, config, or code.
 - One entry per topic, per day per change. Group related changes; don't bundle unrelated ones.
 - Skip: pure read ops, throwaway exploration, trivial fixes already captured in git, the act of logging.
@@ -21,7 +20,6 @@ Tool for keeping a topic-organized development journal as Obsidian-style markdow
 
 ## How to log
 
-- User supplies the scope of the log.
 - Be terse, concise, accurate.
 - Lead with what changed. Then files. Then why if non-obvious.
 - Backticks for paths, commands, identifiers. HTML-tag-looking tokens (`<name>`, `<HOST>`) are auto-backticked on insert.
