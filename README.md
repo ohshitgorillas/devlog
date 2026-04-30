@@ -16,7 +16,7 @@ Getting information out of the log for agents was its own hurdle: `grep` doesn't
 
 ## What tephra provides
 
-- A clean, simple CLI for adding entries to logs.
+- A clean, simple CLI for keeping and reading a timestamped log.
 - Optional `**Related:**` line per entry holding `[[Topic#anchor]]` wikilinks to specific cross-topic entries. Cross-link targets are validated on insert.
 - Atomic writes (tempfile + `os.replace`), so a crash mid-write cannot leave a file corrupt.
 - A file lock around every write, so concurrent `tephra` invocations on the same host serialize cleanly instead of clobbering each other.
