@@ -20,11 +20,14 @@ from .read import (
 )
 from .store import capture_manual_edits, cmd_manual_commit
 from .topics import (
+    cmd_config_default_folder,
     cmd_config_path,
     cmd_config_show,
     cmd_config_vault,
+    cmd_folder_list,
     cmd_topic_add,
     cmd_topic_list,
+    parse_topic_arg,
 )
 from .write import (
     cmd_addend,
@@ -41,6 +44,13 @@ def _resolve_body(arg: str) -> str:
     if arg == "-":
         return sys.stdin.read()
     return arg
+
+
+def _parse_topic(arg: str | None) -> tuple[str | None, str | None]:
+    """Parse a ``-T`` value into ``(folder, topic)``. ``None`` arg → both None."""
+    if arg is None:
+        return None, None
+    return parse_topic_arg(arg)
 
 
 def _add_write_subparsers(sub: argparse._SubParsersAction) -> None:
@@ -154,9 +164,21 @@ def _add_read_subparsers(sub: argparse._SubParsersAction) -> None:
 def _add_topic_subparsers(sub: argparse._SubParsersAction) -> None:
     p_topic = sub.add_parser("topic", help="topic management")
     topic_sub = p_topic.add_subparsers(dest="topic_cmd", metavar="SUBCOMMAND")
-    topic_sub.add_parser("list", help="print known topics")
+    p_tlist = topic_sub.add_parser("list", help="print known topics")
+    p_tlist.add_argument(
+        "-F", "--folder", help="folder to list (default: configured default folder)"
+    )
     p_tadd = topic_sub.add_parser("add", help="create a new topic file")
     p_tadd.add_argument("name")
+    p_tadd.add_argument(
+        "-F", "--folder", help="folder to create in (default: configured default folder)"
+    )
+
+
+def _add_folder_subparsers(sub: argparse._SubParsersAction) -> None:
+    p_folder = sub.add_parser("folder", help="folder management")
+    folder_sub = p_folder.add_subparsers(dest="folder_cmd", metavar="SUBCOMMAND")
+    folder_sub.add_parser("list", help="print folder names (vault subdirectories)")
 
 
 def _add_config_subparsers(sub: argparse._SubParsersAction) -> None:
@@ -164,6 +186,13 @@ def _add_config_subparsers(sub: argparse._SubParsersAction) -> None:
     config_sub = p_config.add_subparsers(dest="config_cmd", metavar="SUBCOMMAND")
     p_vault = config_sub.add_parser("vault", help="set the vault path")
     p_vault.add_argument("path", help="vault directory")
+    p_default_folder = config_sub.add_parser(
+        "default-folder",
+        help="set or clear the default folder (use empty string to clear)",
+    )
+    p_default_folder.add_argument(
+        "folder", help="folder name (empty string clears default → vault root)"
+    )
     config_sub.add_parser("show", help="print resolved vault path + source")
     config_sub.add_parser(
         "path", help="print resolved vault path only (for shell scripting)"
@@ -199,6 +228,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_write_subparsers(sub)
     _add_read_subparsers(sub)
     _add_topic_subparsers(sub)
+    _add_folder_subparsers(sub)
     _add_config_subparsers(sub)
     _add_repo_subparsers(sub)
     return parser
@@ -215,9 +245,16 @@ def _resolve_find_since(args: argparse.Namespace) -> str | None:
 
 def _dispatch_topic(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
     if args.topic_cmd == "list":
-        cmd_topic_list()
+        cmd_topic_list(args.folder)
     elif args.topic_cmd == "add":
-        cmd_topic_add(args.name)
+        cmd_topic_add(args.name, args.folder)
+    else:
+        parser.parse_args([args.cmd, "--help"])
+
+
+def _dispatch_folder(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
+    if args.folder_cmd == "list":
+        cmd_folder_list()
     else:
         parser.parse_args([args.cmd, "--help"])
 
@@ -225,6 +262,8 @@ def _dispatch_topic(args: argparse.Namespace, parser: argparse.ArgumentParser) -
 def _dispatch_config(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
     if args.config_cmd == "vault":
         cmd_config_vault(args.path)
+    elif args.config_cmd == "default-folder":
+        cmd_config_default_folder(args.folder or None)
     elif args.config_cmd == "show":
         cmd_config_show()
     elif args.config_cmd == "path":
@@ -248,16 +287,23 @@ def main() -> None:
         _dispatch_topic(args, parser)
         return
 
+    if args.cmd == "folder":
+        _dispatch_folder(args, parser)
+        return
+
     if args.cmd == "config":
         _dispatch_config(args, parser)
         return
 
+    folder, topic = _parse_topic(getattr(args, "topic", None))
+
     dispatch = {
         "add": lambda: insert_entry(
-            args.topic, args.title, _resolve_body(args.entry), args.related or None
+            folder, topic, args.title, _resolve_body(args.entry), args.related or None
         ),
         "amend": lambda: cmd_amend(
-            args.topic,
+            folder,
+            topic,
             _resolve_body(args.body),
             args.date,
             args.title,
@@ -265,24 +311,25 @@ def main() -> None:
             args.no_related,
         ),
         "addend": lambda: cmd_addend(
-            args.topic,
+            folder,
+            topic,
             _resolve_body(args.body),
             args.date,
             args.title,
             args.related or None,
         ),
         "retitle": lambda: cmd_retitle(
-            args.topic, args.date, args.title, args.new_title
+            folder, topic, args.date, args.title, args.new_title
         ),
-        "rm": lambda: cmd_rm(args.topic, args.date, args.title, args.dry_run),
-        "show": lambda: cmd_show(args.date, args.topic, args.json_out),
+        "rm": lambda: cmd_rm(folder, topic, args.date, args.title, args.dry_run),
+        "show": lambda: cmd_show(args.date, folder, topic, args.json_out),
         "find": lambda: cmd_find(
-            args.term, args.topic, args.json_out, _resolve_find_since(args)
+            args.term, folder, topic, args.json_out, _resolve_find_since(args)
         ),
-        "recent": lambda: cmd_recent(args.days, args.topic, args.json_out),
-        "list": lambda: cmd_list(args.topic, args.json_out),
-        "last": lambda: cmd_last(args.topic, args.json_out),
-        "exists": lambda: cmd_exists(args.topic, args.date, args.title),
+        "recent": lambda: cmd_recent(args.days, folder, topic, args.json_out),
+        "list": lambda: cmd_list(folder, topic, args.json_out),
+        "last": lambda: cmd_last(folder, topic, args.json_out),
+        "exists": lambda: cmd_exists(folder, topic, args.date, args.title),
         "log": lambda: cmd_log(args.n),
         "diff": lambda: cmd_diff(args.ref),
         "undo": cmd_undo,

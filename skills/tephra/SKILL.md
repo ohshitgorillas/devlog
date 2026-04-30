@@ -9,7 +9,7 @@ description: >
   locking, and per-write git auto-commits.
 ---
 
-Tool for keeping a topic-organized development journal as Obsidian-style markdown. Each topic is a single file (`Topic.md`) inside the vault dir; entries are H2 sections (`## YYYY-MM-DD (HH:MM) — Title`) sorted newest-first. Every CLI write auto-commits to the vault git repo. Direct edits in the Obsidian GUI are auto-captured to git on next CLI invocation.
+Tool for keeping a topic-organized development journal as Obsidian-style markdown. Each topic is a single file (`Topic.md`); files may live in the vault root or in a folder (`<vault>/<Folder>/<Topic>.md`). Entries are H2 sections (`## YYYY-MM-DD (HH:MM) — Title`) sorted newest-first. Every CLI write auto-commits to the vault git repo. Direct edits in the Obsidian GUI are auto-captured to git on next CLI invocation.
 
 ## When and what to log
 
@@ -46,6 +46,7 @@ tephra add -T TOPIC -t "Brief title" -e "What changed, which files, why if non-o
 ```
 
 - `-T` is required and must be a known topic (see `tephra topic list`).
+- Bare `-T Topic` resolves to the configured default folder (see `tephra config show`). Override with `-T Folder:Topic`.
 - Title: imperative, ≤60 chars.
 - Entry: factual + terse. What changed → files touched → why (only if non-obvious).
 - Title collision on same date in same topic = error. Pick distinct title or use `amend`/`addend`.
@@ -69,8 +70,9 @@ tephra add -T O11y -t "Title" -e "body" \
 ## Topic management
 
 ```sh
-tephra topic list               # known topics
-tephra topic add NAME           # create a new topic file
+tephra topic list [-F FOLDER]   # known topics (default folder unless -F)
+tephra topic add NAME [-F FOLDER]
+tephra folder list              # vault subdirectories
 ```
 
 Topics cannot be added implicitly via `add` — the topic file must already exist.
@@ -153,3 +155,5 @@ tephra diff [REF]   # git show REF (default HEAD)
 ## Vault location
 
 The vault path is stored in `$XDG_CONFIG_HOME/tephra/vault` (typically `~/.config/tephra/vault`). Set with `tephra config vault PATH`; inspect with `tephra config show`. Default if unset: `$XDG_DATA_HOME/tephra/vault` (typically `~/.local/share/tephra/vault`).
+
+The default folder for `-T Topic` is stored at `$XDG_CONFIG_HOME/tephra/default_folder`. Set with `tephra config default-folder NAME`; clear with empty string (writes go to vault root).
