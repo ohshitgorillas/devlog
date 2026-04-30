@@ -13,21 +13,21 @@ Tool for keeping a topic-organized development journal as Obsidian-style markdow
 
 ## When and what to log
 
-**NOTE TO USER**: edit this section to your preferred scope. Agents: if this line remains, confirm scope before logging.
-
+- User will supply the scope.
 - After any non-trivial change to system state, infra, config, or code.
 - One entry per topic, per day per change. Group related changes; don't bundle unrelated ones.
 - Skip: pure read ops, throwaway exploration, trivial fixes already captured in git, the act of logging.
+- **CRITICAL**: Contents are stored in plain text. DO NOT ENTER SENSITIVE INFORMATION.
 
 ## How to log
 
 - User supplies the scope of the log.
-- Be terse, concise, precise.
+- Be terse, concise, accurate.
 - Lead with what changed. Then files. Then why if non-obvious.
 - Backticks for paths, commands, identifiers. HTML-tag-looking tokens (`<name>`, `<HOST>`) are auto-backticked on insert.
 - Match existing entries in the same topic — check `tephra last -T TOPIC` or `tephra recent 3 -T TOPIC` first.
 - No marketing voice. No "successfully". No restating the title.
-- **Always cross-link related prior entries with `--related`.** Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra recent 14 -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [(HH:MM)] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
+- Always cross-link related prior entries with `--related`. Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra recent 14 -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [(HH:MM)] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
 
 ### When to add a related link
 
