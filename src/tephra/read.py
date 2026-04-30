@@ -21,7 +21,7 @@ from .store import (
     topic_path,
     vault_dir,
 )
-from .topics import list_folders, list_topics, validate_topic
+from .topics import list_topics, validate_topic
 
 
 @dataclass
@@ -52,12 +52,13 @@ def _resolve_scope(
     """Expand ``(folder, topic)`` into a list of ``(folder, topic)`` pairs.
 
     With a topic, scope is that one topic in the resolved folder. Without
-    a topic, scope is all topics in the default folder.
+    a topic, scope is all topics in ``folder`` (or the default folder if
+    no folder was given).
     """
     if topic is not None:
         return [(folder, topic)]
-    default = read_default_folder()
-    return [(default, t) for t in list_topics(default)]
+    target_folder = folder if folder is not None else read_default_folder()
+    return [(target_folder, t) for t in list_topics(target_folder)]
 
 
 def _all_entries(

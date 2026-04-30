@@ -63,7 +63,7 @@ tephra add -T O11y -t "Title" -e "body" \
   --related "Bittorrent#2026-04-24 — peer port metric"
 ```
 
-Read commands (cross-topic by default; pass `-T TOPIC` to restrict):
+Read commands (cross-topic by default; pass `-T TOPIC` to restrict to one topic, or `-T Folder:` to restrict to all topics in a folder):
 
 ```sh
 tephra show 2026-04-28          # entries on a date

@@ -297,6 +297,13 @@ def main() -> None:
 
     folder, topic = _parse_topic(getattr(args, "topic", None))
 
+    _topic_required = {"add", "amend", "addend", "retitle", "rm", "exists"}
+    if args.cmd in _topic_required and topic is None:
+        sys.exit(
+            f"-T 'Folder:' (folder-only) not allowed for '{args.cmd}'; "
+            f"supply 'Folder:Topic' or 'Topic'"
+        )
+
     dispatch = {
         "add": lambda: insert_entry(
             folder, topic, args.title, _resolve_body(args.entry), args.related or None

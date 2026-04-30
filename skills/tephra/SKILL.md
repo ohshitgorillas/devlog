@@ -47,6 +47,7 @@ tephra add -T TOPIC -t "Brief title" -e "What changed, which files, why if non-o
 
 - `-T` is required and must be a known topic (see `tephra topic list`).
 - Bare `-T Topic` resolves to the configured default folder (see `tephra config show`). Override with `-T Folder:Topic`.
+- For read commands only (`show`, `find`, `recent`, `list`, `last`): `-T Folder:` (trailing colon, no topic) scopes to all topics in `Folder`. Write/existence commands reject this form.
 - Title: imperative, ≤60 chars.
 - Entry: factual + terse. What changed → files touched → why (only if non-obvious).
 - Title collision on same date in same topic = error. Pick distinct title or use `amend`/`addend`.
@@ -97,7 +98,7 @@ Default target = newest entry in the topic. Pass `-d YYYY-MM-DD -t "Title"` (or 
 
 ## Read
 
-Cross-topic by default. Pass `-T TOPIC` to restrict to one topic.
+Cross-topic by default. Pass `-T TOPIC` to restrict to one topic, or `-T Folder:` to restrict to all topics in a folder.
 
 | Op | Command | JSON |
 |----|---------|------|

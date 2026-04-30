@@ -26,12 +26,13 @@ _TOPIC_NAME_PAT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 _FOLDER_NAME_PAT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
 
 
-def parse_topic_arg(arg: str) -> tuple[str | None, str]:
+def parse_topic_arg(arg: str) -> tuple[str | None, str | None]:
     """Parse a ``-T`` value into ``(folder, topic)``.
 
     Forms:
       - ``Topic``           → (default_folder, "Topic")
       - ``Folder:Topic``    → ("Folder", "Topic")
+      - ``Folder:``         → ("Folder", None) — folder-scope, all topics (reads only)
     """
     if ":" not in arg:
         topic = arg.strip()
@@ -41,11 +42,11 @@ def parse_topic_arg(arg: str) -> tuple[str | None, str]:
     folder, topic = arg.split(":", 1)
     folder = folder.strip()
     topic = topic.strip()
-    if not folder or not topic:
+    if not folder:
         sys.exit(
-            f"-T '{arg}': both folder and topic required (form: 'Folder:Topic')"
+            f"-T '{arg}': folder required (form: 'Folder:Topic' or 'Folder:')"
         )
-    return folder, topic
+    return folder, (topic or None)
 
 
 def _list_md_in(d: str) -> list[str]:
