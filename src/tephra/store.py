@@ -24,6 +24,12 @@ def config_path() -> str:
     return os.path.join(xdg, "tephra", "vault")
 
 
+def default_folder_path() -> str:
+    """Return the path to the per-user default-folder config file."""
+    xdg = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return os.path.join(xdg, "tephra", "default_folder")
+
+
 def _read_config_vault() -> str | None:
     """Return the vault path stored in the config file, or None if absent."""
     path = config_path()
@@ -35,6 +41,19 @@ def _read_config_vault() -> str | None:
     except OSError:
         return None
     return os.path.expanduser(value) if value else None
+
+
+def read_default_folder() -> str | None:
+    """Return the configured default folder, or None if unset (= root vault)."""
+    path = default_folder_path()
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            value = f.read().strip()
+    except OSError:
+        return None
+    return value or None
 
 
 def vault_source() -> tuple[str, str]:
@@ -65,14 +84,36 @@ def write_config_vault(path: str) -> None:
         f.write(target + "\n")
 
 
+def write_config_default_folder(folder: str | None) -> None:
+    """Persist ``folder`` as the default folder. Pass None/empty to clear."""
+    cfg = default_folder_path()
+    os.makedirs(os.path.dirname(cfg), exist_ok=True)
+    if not folder:
+        if os.path.isfile(cfg):
+            os.unlink(cfg)
+        return
+    with open(cfg, "w", encoding="utf-8") as f:
+        f.write(folder + "\n")
+
+
 def lockfile() -> str:
     """Return the path to the per-vault lockfile."""
     return os.path.join(vault_dir(), ".tephra.lock")
 
 
-def topic_path(topic: str) -> str:
+def folder_dir(folder: str | None) -> str:
+    """Return the directory that holds topic files for ``folder``.
+
+    ``None`` (or empty) = vault root. Otherwise ``<vault>/<folder>``.
+    """
+    if not folder:
+        return vault_dir()
+    return os.path.join(vault_dir(), folder)
+
+
+def topic_path(topic: str, folder: str | None = None) -> str:
     """Return the markdown file path for ``topic`` (no validation)."""
-    return os.path.join(vault_dir(), f"{topic}.md")
+    return os.path.join(folder_dir(folder), f"{topic}.md")
 
 
 def ensure_vault() -> None:

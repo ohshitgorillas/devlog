@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-04-29
+
+### Added
+
+- Folder-scoped vault layout: topic files may live in subdirectories (`<vault>/<Folder>/<Topic>.md`) in addition to the vault root.
+- `-T Folder:Topic` syntax on all read/write commands to target a topic in a specific folder. Bare `-T Topic` uses the configured default folder.
+- `tephra config default-folder NAME` to persist a default folder; pass an empty string to clear (writes to vault root). Stored at `$XDG_CONFIG_HOME/tephra/default_folder`.
+- `tephra folder list` to enumerate folders (vault subdirectories).
+- `tephra topic add NAME -F FOLDER` and `tephra topic list -F FOLDER` to scope topic management to a folder.
+- `Folder:Topic#anchor` syntax in `--related` refs for cross-folder wikilinks.
+- Read-command output labels now show `[Folder:Topic]` when the entry is folder-scoped.
+
+### Changed
+
+- `tephra config show` now also reports the configured default folder.
+
 ## [2.1.0] - 2026-04-29
 
 ### Added

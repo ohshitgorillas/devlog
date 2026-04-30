@@ -9,6 +9,7 @@ import sys
 from .store import (
     RELATED_PAT,
     parse_entries,
+    read_default_folder,
     read_lines,
     topic_path,
 )
@@ -28,31 +29,50 @@ def format_heading(date: str, time: str | None, title: str) -> str:
     return f"## {format_anchor(date, time, title)}"
 
 
-def parse_link_arg(arg: str) -> tuple[str, str, str | None, str]:
-    """Parse a user-supplied ``Topic#YYYY-MM-DD [(HH:MM)] — Title`` ref.
+def parse_link_arg(arg: str) -> tuple[str | None, str, str, str | None, str]:
+    """Parse a user-supplied ref into ``(folder, topic, date, time, title)``.
 
-    Returns ``(topic, date, time_or_None, title)``.
+    Forms:
+      - ``Topic#anchor``           → (default_folder, "Topic", ...)
+      - ``Folder:Topic#anchor``    → ("Folder", "Topic", ...)
     """
     if "#" not in arg:
-        sys.exit(f"Invalid related ref '{arg}': expected 'Topic#YYYY-MM-DD — Title'")
-    topic, anchor = arg.split("#", 1)
-    topic = topic.strip()
+        sys.exit(
+            f"Invalid related ref '{arg}': expected '[Folder:]Topic#YYYY-MM-DD — Title'"
+        )
+    head, anchor = arg.split("#", 1)
+    head = head.strip()
     anchor = anchor.strip()
+    if ":" in head:
+        folder, topic = head.split(":", 1)
+        folder = folder.strip()
+        topic = topic.strip()
+        if not folder or not topic:
+            sys.exit(
+                f"Invalid related ref '{arg}': both folder and topic required "
+                f"(form: 'Folder:Topic#anchor')"
+            )
+    else:
+        folder = read_default_folder()
+        topic = head
     m = _ANCHOR_PAT.match(anchor)
     if not m:
         sys.exit(
             f"Invalid related ref '{arg}': anchor must be "
             f"'YYYY-MM-DD [(HH:MM)] — Title'"
         )
-    return topic, m.group(1), m.group(2), m.group(3)
+    return folder, topic, m.group(1), m.group(2), m.group(3)
 
 
-def validate_link(topic: str, date: str, time: str | None, title: str) -> str:
-    """Confirm the entry exists in ``topic.md``. Returns the resolved anchor."""
-    topics = list_topics()
+def validate_link(
+    folder: str | None, topic: str, date: str, time: str | None, title: str
+) -> str:
+    """Confirm entry exists in ``folder``/``topic``. Returns resolved anchor."""
+    topics = list_topics(folder)
+    label = f"{folder}:{topic}" if folder else topic
     if topic not in topics:
-        sys.exit(f"Related ref: unknown topic '{topic}'")
-    path = topic_path(topic)
+        sys.exit(f"Related ref: unknown topic '{label}'")
+    path = topic_path(topic, folder)
     if not os.path.isfile(path):
         sys.exit(f"Related ref: topic file missing at {path}")
     lines = read_lines(path)
@@ -65,17 +85,22 @@ def validate_link(topic: str, date: str, time: str | None, title: str) -> str:
     sys.exit(
         f"Related ref: no entry '{title}' on {date}"
         + (f" at {time}" if time else "")
-        + f" in topic '{topic}'"
+        + f" in topic '{label}'"
     )
+
+
+def _format_link(folder: str | None, topic: str, anchor: str) -> str:
+    head = f"{folder}:{topic}" if folder else topic
+    return f"[[{head}#{anchor}]]"
 
 
 def format_related_line(refs: list[str]) -> str:
     """Build the ``**Related:** [[...]], [[...]]`` line (no newline)."""
     links = []
     for ref in refs:
-        topic, date, time, title = parse_link_arg(ref)
-        anchor = validate_link(topic, date, time, title)
-        links.append(f"[[{topic}#{anchor}]]")
+        folder, topic, date, time, title = parse_link_arg(ref)
+        anchor = validate_link(folder, topic, date, time, title)
+        links.append(_format_link(folder, topic, anchor))
     return "**Related:** " + ", ".join(links)
 
 

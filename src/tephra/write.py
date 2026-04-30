@@ -30,6 +30,10 @@ from .store import (
 )
 from .topics import validate_topic
 
+
+def _label(folder: str | None, topic: str) -> str:
+    return f"{folder}:{topic}" if folder else topic
+
 _HTML_TAG_PAT = re.compile(r"(?<!`)<([a-zA-Z][A-Za-z0-9_-]*)>(?!`)")
 
 
@@ -96,24 +100,26 @@ def _build_block(
 
 
 def insert_entry(
+    folder: str | None,
     topic: str,
     title: str,
     body: str,
     related_refs: list[str] | None,
 ) -> None:
     """Add a new entry at the top of ``topic.md``."""
-    validate_topic(topic)
+    validate_topic(folder, topic)
     related_line = format_related_line(related_refs) if related_refs else None
-    path = topic_path(topic)
+    path = topic_path(topic, folder)
     date = today_iso()
     time = now_time()
+    label = _label(folder, topic)
     with write_lock():
         if not os.path.isfile(path):
             sys.exit(f"Topic file missing at {path}")
         lines = read_lines(path)
         if find_entry(topic, lines, date, title) is not None:
             sys.exit(
-                f"Entry '{title}' already exists on {date} in topic '{topic}'. "
+                f"Entry '{title}' already exists on {date} in topic '{label}'. "
                 f"Use a different title or `tephra amend`/`addend`."
             )
         block = _build_block(date, time, title, body, related_line)
@@ -122,8 +128,8 @@ def insert_entry(
             block = ["\n"] + block
         lines = lines[:pos] + block + lines[pos:]
         write_lines(path, lines)
-        git_snapshot(f"add: [{topic}] {title}")
-    print(f"Added: [{topic}] {date} ({time}) — {title}")
+        git_snapshot(f"add: [{label}] {title}")
+    print(f"Added: [{label}] {date} ({time}) — {title}")
 
 
 def _entry_body_lines(lines: list[str], entry: Entry) -> list[str]:
@@ -173,6 +179,7 @@ def _build_body_block(body_text: str, related_line: str | None) -> list[str]:
 
 
 def cmd_amend(
+    folder: str | None,
     topic: str,
     new_text: str,
     date_arg: str | None = None,
@@ -185,11 +192,12 @@ def cmd_amend(
     By default the existing ``**Related:**`` line is preserved. Pass
     ``related_refs`` to rewrite it, or ``drop_related=True`` to drop it.
     """
-    validate_topic(topic)
+    validate_topic(folder, topic)
     if related_refs and drop_related:
         sys.exit("--related and --no-related are mutually exclusive")
     new_related_line = format_related_line(related_refs) if related_refs else None
-    path = topic_path(topic)
+    path = topic_path(topic, folder)
+    label = _label(folder, topic)
     with write_lock():
         lines = read_lines(path)
         entry = _resolve_target(topic, lines, date_arg, title)
@@ -198,8 +206,8 @@ def cmd_amend(
         new_body = _build_body_block(new_text, related_line)
         lines = lines[: entry.start + 1] + new_body + lines[entry.end :]
         write_lines(path, lines)
-        git_snapshot(f"amend: [{topic}] {entry.title}")
-    print(f"Amended: [{topic}] {entry.date} — {entry.title}")
+        git_snapshot(f"amend: [{label}] {entry.title}")
+    print(f"Amended: [{label}] {entry.date} — {entry.title}")
 
 
 def _split_body_at_related(body: list[str]) -> tuple[list[str], list[str]]:
@@ -229,9 +237,10 @@ def _merge_related_links(existing: list[str], refs: list[str]) -> list[str]:
     """Return ``existing`` extended with validated refs, deduped (order-preserving)."""
     new_links: list[str] = []
     for ref in refs:
-        topic_r, date_r, time_r, title_r = parse_link_arg(ref)
-        anchor = validate_link(topic_r, date_r, time_r, title_r)
-        new_links.append(f"[[{topic_r}#{anchor}]]")
+        folder_r, topic_r, date_r, time_r, title_r = parse_link_arg(ref)
+        anchor = validate_link(folder_r, topic_r, date_r, time_r, title_r)
+        head = f"{folder_r}:{topic_r}" if folder_r else topic_r
+        new_links.append(f"[[{head}#{anchor}]]")
     out = list(existing)
     seen = set(out)
     for link in new_links:
@@ -249,6 +258,7 @@ def _related_tail(links: list[str]) -> list[str]:
 
 
 def cmd_addend(
+    folder: str | None,
     topic: str,
     new_text: str,
     date_arg: str | None = None,
@@ -260,8 +270,9 @@ def cmd_addend(
     If ``related_refs`` is given, each ref is appended to the existing
     Related line (deduped). If no Related line exists yet, one is created.
     """
-    validate_topic(topic)
-    path = topic_path(topic)
+    validate_topic(folder, topic)
+    path = topic_path(topic, folder)
+    label = _label(folder, topic)
     with write_lock():
         lines = read_lines(path)
         entry = _resolve_target(topic, lines, date_arg, title)
@@ -274,47 +285,61 @@ def cmd_addend(
             new_body.append("\n")
         lines = lines[: entry.start + 1] + new_body + lines[entry.end :]
         write_lines(path, lines)
-        git_snapshot(f"addend: [{topic}] {entry.title}")
-    print(f"Added to: [{topic}] {entry.date} — {entry.title}")
+        git_snapshot(f"addend: [{label}] {entry.title}")
+    print(f"Added to: [{label}] {entry.date} — {entry.title}")
 
 
-def cmd_retitle(topic: str, date_arg: str, old_title: str, new_title: str) -> None:
+def cmd_retitle(
+    folder: str | None,
+    topic: str,
+    date_arg: str,
+    old_title: str,
+    new_title: str,
+) -> None:
     """Rename an entry in place, preserving date and time."""
-    validate_topic(topic)
+    validate_topic(folder, topic)
     date = parse_date_arg(date_arg)
-    path = topic_path(topic)
+    path = topic_path(topic, folder)
+    label = _label(folder, topic)
     with write_lock():
         lines = read_lines(path)
         entry = find_entry(topic, lines, date, old_title)
         if entry is None:
-            sys.exit(f"No entry '{old_title}' on {date} in topic '{topic}'")
+            sys.exit(f"No entry '{old_title}' on {date} in topic '{label}'")
         ts = f" ({entry.time})" if entry.time else ""
         lines[entry.start] = f"## {entry.date}{ts} — {new_title}\n"
         write_lines(path, lines)
-        git_snapshot(f"retitle: [{topic}] {old_title} -> {new_title}")
-    print(f"Retitled: [{topic}] {old_title} -> {new_title}")
+        git_snapshot(f"retitle: [{label}] {old_title} -> {new_title}")
+    print(f"Retitled: [{label}] {old_title} -> {new_title}")
 
 
-def cmd_rm(topic: str, date_arg: str, title: str, dry_run: bool = False) -> None:
+def cmd_rm(
+    folder: str | None,
+    topic: str,
+    date_arg: str,
+    title: str,
+    dry_run: bool = False,
+) -> None:
     """Delete an entry from a topic file."""
-    validate_topic(topic)
+    validate_topic(folder, topic)
     date = parse_date_arg(date_arg)
-    path = topic_path(topic)
+    path = topic_path(topic, folder)
+    label = _label(folder, topic)
 
     def _impl() -> None:
         lines = read_lines(path)
         entry = find_entry(topic, lines, date, title)
         if entry is None:
-            sys.exit(f"No entry '{title}' on {date} in topic '{topic}'")
+            sys.exit(f"No entry '{title}' on {date} in topic '{label}'")
         new_lines = lines[: entry.start] + lines[entry.end :]
         if dry_run:
-            print(f"Would remove '{title}' on {date} from topic '{topic}'")
+            print(f"Would remove '{title}' on {date} from topic '{label}'")
             print("--- entry content ---")
             print("".join(lines[entry.start : entry.end]).rstrip())
             return
         write_lines(path, new_lines)
-        git_snapshot(f"rm: [{topic}] {title}")
-        print(f"Removed '{title}' on {date} from topic '{topic}'")
+        git_snapshot(f"rm: [{label}] {title}")
+        print(f"Removed '{title}' on {date} from topic '{label}'")
 
     if dry_run:
         _impl()
