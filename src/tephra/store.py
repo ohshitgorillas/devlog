@@ -239,6 +239,21 @@ def capture_manual_edits() -> None:
         print(f"warning: capture_manual_edits failed: {e}", file=sys.stderr)
 
 
+def cmd_manual_commit(message: str) -> None:
+    """Stage all vault changes and commit with ``message``. Exit non-zero if clean."""
+    repo = vault_dir()
+    init_repo(repo)
+    try:
+        _git(repo, "add", "-A")
+        cached = _git(repo, "diff", "--cached", "--quiet", check=False)
+        if cached.returncode == 0:
+            sys.exit("nothing to commit")
+        _git(repo, "commit", "-q", "-m", message)
+        print(f"committed manual edit: {message}")
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        sys.exit(f"manual-commit failed: {e}")
+
+
 def git_snapshot(message: str) -> None:
     """Stage everything in the vault and commit. Best-effort; no-op if clean."""
     repo = vault_dir()

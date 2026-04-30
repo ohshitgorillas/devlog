@@ -1,3 +1,3 @@
 """tephra: topic-based markdown journal CLI for Obsidian-style vaults."""
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"

@@ -18,7 +18,7 @@ from .read import (
     cmd_recent,
     cmd_show,
 )
-from .store import capture_manual_edits
+from .store import capture_manual_edits, cmd_manual_commit
 from .topics import (
     cmd_config_path,
     cmd_config_show,
@@ -179,6 +179,12 @@ def _add_repo_subparsers(sub: argparse._SubParsersAction) -> None:
 
     sub.add_parser("undo", help="revert last commit in the vault repo")
 
+    p_manual = sub.add_parser(
+        "manual-commit",
+        help="commit pending vault edits with a custom message",
+    )
+    p_manual.add_argument("message", help="commit message")
+
 
 def build_parser() -> argparse.ArgumentParser:
     """Construct the argparse top-level parser with every subcommand attached."""
@@ -229,9 +235,10 @@ def _dispatch_config(args: argparse.Namespace, parser: argparse.ArgumentParser) 
 
 def main() -> None:
     """Capture manual vault edits, then dispatch the requested subcommand."""
-    capture_manual_edits()
     parser = build_parser()
     args = parser.parse_args()
+    if args.cmd != "manual-commit":
+        capture_manual_edits()
 
     if args.cmd is None:
         parser.print_help()
@@ -279,6 +286,7 @@ def main() -> None:
         "log": lambda: cmd_log(args.n),
         "diff": lambda: cmd_diff(args.ref),
         "undo": cmd_undo,
+        "manual-commit": lambda: cmd_manual_commit(args.message),
     }
     dispatch[args.cmd]()
 

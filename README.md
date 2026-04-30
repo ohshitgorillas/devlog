@@ -100,6 +100,7 @@ Repo commands:
 tephra log [N]                  # last N commits (default 20)
 tephra diff [REF]               # git show REF (default HEAD)
 tephra undo                     # revert last commit in data repo
+tephra manual-commit "MSG"      # commit pending manual edits with custom message
 ```
 
 Multi-line bodies from a shell are easiest with `$'...\n...'` quoting, or by passing `-` as the body and piping in stdin:
@@ -150,7 +151,7 @@ Body.
 Body.
 ```
 
-Each CLI write produces one commit with a message like `add: [Topic] TITLE`, `amend: [Topic] TITLE`, `rm: [Topic] TITLE`. Direct edits are committed as `manual edit (captured)` on the next invocation.
+Each CLI write produces one commit with a message like `add: [Topic] TITLE`, `amend: [Topic] TITLE`, `rm: [Topic] TITLE`. Direct edits are committed as `manual edit (captured)` on the next invocation, or with a custom message via `tephra manual-commit "MSG"` before the next CLI write.
 
 ## Obsidian integration
 

@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-04-29
+
+### Added
+
+- `tephra manual-commit "MSG"`: commit pending manual vault edits with a custom message instead of the default `manual edit (captured)`. Exits 1 with `nothing to commit` if the vault is clean.
+
 ## [2.0.0] - 2026-04-28
 
 Renamed from `devlog` to `tephra`. Restructured from single-file (`~/.devlog/devlog.md`) to a topic-organized vault (one Markdown file per topic, format compatible with Obsidian).
