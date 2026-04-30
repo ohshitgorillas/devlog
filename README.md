@@ -6,19 +6,17 @@ The format is hand-editable in any text editor and renders cleanly in [Obsidian]
 
 ## Why tephra
 
-I started keeping `~/devlog.md` as an informal way to track changes on my homelab servers. The reasons for such a log are obvious:
+I keep a log to track homelab changes. `git` doesn't fit (`/` would be an absurd repo) and the changes I care about span multiple systems anyway. Any significant configuration changes, package installations, etc. were recorded in `~/devlog.md`.
 
-- If something breaks, I have a reference for exactly what I last did to it.
-- If the same thing breaks again, the fix is already written down.
-- If I ever have to reinstall or start over, I have a log of every change, package, and setting that mattered.
+Enter Claude Code: agents work faster than I can, but getting them to log their actions consistently was insanely frustrating. Despite explicit instructions in `CLAUDE.md`, agents would freestyle the format, create duplicate date headers or simply enter the wrong date, append instead of prepend, etc. It took no less than five frustrated prompts per session to keep the devlog consistent.
 
-Enter Claude Code and its ilk: in spite of clear instructions in `CLAUDE.md`, agents would decide randomly to either append or prepend, change format, dump the entire file, etc. It took no less than five frustrated prompts per session to keep the devlog consistent. There's also the issue of parsing such a file to provide agents relevant context: `grep` doesn't work when entries are split across multiple lines, requiring me to manually copy and paste the relevant sections.
+Getting information out of the log for agents was its own hurdle: `grep` doesn't work when entires span multiple lines, so your choices are to either copy-paste by hand or dump the whole file and burn context on noise.
 
-`tephra` provides a clean, structured way for humans and AI agents alike to maintain and reference such a log. It's specifically intended for scenarios where `git` or `jrnl` are the wrong tools: tracking system-wide or cross-system changes that span multiple repos and unversioned paths (no one's committing `/`), keeping a durable record without standing up encryption or multiple journals you don't need, and scenarios where a structured approach beats free-form prose. The same shape applies anywhere you want a durable, searchable log that isn't tied to a specific repo: dotfile tweaks, ops actions on a production host, household IT chores, research notes, anything where "what did I change six months ago and why" is a question you'd like to be able to answer.
+`tephra` fixes both ends. Agents and humans alike get a simple CLI for maintaining and referencing the document.
 
 ## What tephra provides
 
-- A vault directory of Markdown files, one per topic, organized as `## YYYY-MM-DD (HH:MM) — Title` headings sorted newest-first.
+- A clean, simple CLI for adding entries to logs.
 - Optional `**Related:**` line per entry holding `[[Topic#anchor]]` wikilinks to specific cross-topic entries. Cross-link targets are validated on insert.
 - Atomic writes (tempfile + `os.replace`), so a crash mid-write cannot leave a file corrupt.
 - A file lock around every write, so concurrent `tephra` invocations on the same host serialize cleanly instead of clobbering each other.
