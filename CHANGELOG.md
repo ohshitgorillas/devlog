@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-05-01
+
+### Added
+
+- `tephra skill` subcommand. `tephra skill` cats the bundled `SKILL.md` to stdout; `tephra skill --install [DIR]` writes it to `DIR/skills/tephra/SKILL.md` (default `$CLAUDE_PROJECT_DIR/.claude` or `~/.claude`); `tephra skill --path` prints the bundled file path. Lets PyPI-only users drop the agent skill into Claude Code without cloning the repo.
+
+### Changed
+
+- Moved the skill file from `skills/tephra/SKILL.md` (top-level) to `src/tephra/skills/tephra/SKILL.md` so it ships inside the wheel as package data. The repo path changed but the published-via-`tephra skill --install` install path (`<root>/skills/tephra/SKILL.md`) is unchanged.
+
+### Removed
+
+- Heading-parser tolerance for the legacy paren time form (`## YYYY-MM-DD (HH:MM) — Title`). New writes have emitted the no-paren form since v2.4.1; vaults still containing legacy entries must be migrated with a one-shot `sed` before upgrading to v2.6.0. Both `ENTRY_PAT` (entry headings) and `_ANCHOR_PAT` (Related-line wikilink anchors) now require the no-paren form.
+
 ## [2.5.0] - 2026-05-01
 
 ### Added

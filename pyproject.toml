@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tephra"
-version = "2.5.0"
+version = "2.6.0"
 description = "Topic-based markdown journal CLI for Obsidian-style vaults"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -38,6 +38,9 @@ tephra = "tephra.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+tephra = ["skills/tephra/SKILL.md"]
 
 [tool.ruff]
 target-version = "py39"

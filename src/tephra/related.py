@@ -15,7 +15,7 @@ from .store import (
 )
 from .topics import list_topics
 
-_ANCHOR_PAT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?: \(?(\d{2}:\d{2})\)?)? — (.+)$")
+_ANCHOR_PAT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?: (\d{2}:\d{2}))? — (.+)$")
 
 
 def format_anchor(date: str, time: str | None, title: str) -> str:

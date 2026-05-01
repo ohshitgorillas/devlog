@@ -18,6 +18,7 @@ from .read import (
     cmd_recent,
     cmd_show,
 )
+from .skill import cmd_skill_install, cmd_skill_path, cmd_skill_print
 from .store import capture_manual_edits, cmd_manual_commit
 from .topics import (
     cmd_config_auto_sync,
@@ -275,6 +276,29 @@ def _add_config_subparsers(sub: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_skill_subparser(sub: argparse._SubParsersAction) -> None:
+    p_skill = sub.add_parser(
+        "skill",
+        help="print or install the bundled Claude Code skill file",
+    )
+    g = p_skill.add_mutually_exclusive_group()
+    g.add_argument(
+        "--install",
+        nargs="?",
+        const="",
+        metavar="DIR",
+        help=(
+            "write SKILL.md to DIR/skills/tephra/SKILL.md "
+            "(default DIR: $CLAUDE_PROJECT_DIR/.claude or ~/.claude)"
+        ),
+    )
+    g.add_argument(
+        "--path",
+        action="store_true",
+        help="print the on-disk path of the bundled SKILL.md and exit",
+    )
+
+
 def _add_repo_subparsers(sub: argparse._SubParsersAction) -> None:
     p_log = sub.add_parser("log", help="show vault repo commit history")
     p_log.add_argument("n", nargs="?", type=int, default=20)
@@ -306,6 +330,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_topic_subparsers(sub)
     _add_folder_subparsers(sub)
     _add_config_subparsers(sub)
+    _add_skill_subparser(sub)
     _add_repo_subparsers(sub)
     return parser
 
@@ -352,10 +377,20 @@ def _dispatch_config(args: argparse.Namespace, parser: argparse.ArgumentParser) 
         parser.parse_args([args.cmd, "--help"])
 
 
+def _dispatch_skill(args: argparse.Namespace, _parser: argparse.ArgumentParser) -> None:
+    if args.path:
+        cmd_skill_path()
+    elif args.install is not None:
+        cmd_skill_install(args.install or None)
+    else:
+        cmd_skill_print()
+
+
 _GROUP_DISPATCHERS = {
     "topic": _dispatch_topic,
     "folder": _dispatch_folder,
     "config": _dispatch_config,
+    "skill": _dispatch_skill,
 }
 
 
@@ -424,7 +459,7 @@ def main() -> None:
     """Capture manual vault edits, then dispatch the requested subcommand."""
     parser = build_parser()
     args = parser.parse_args()
-    if args.cmd != "manual-commit":
+    if args.cmd not in {"manual-commit", "skill"}:
         capture_manual_edits()
     if args.cmd is None:
         parser.print_help()

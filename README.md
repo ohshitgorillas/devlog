@@ -187,7 +187,17 @@ git -C "$(tephra config path)" revert <ref>   # selectively undo any past commit
 
 ## For AI agents
 
-See [`skills/tephra/SKILL.md`](skills/tephra/SKILL.md) for an AI-optimized reference covering when to log, command tables, style guidance, and failure modes. The file is a Claude Code skill (loaded by Claude Code's skill discovery via the YAML frontmatter) but is human-readable as a regular markdown reference.
+See [`src/tephra/skills/tephra/SKILL.md`](src/tephra/skills/tephra/SKILL.md) for an AI-optimized reference covering when to log, command tables, style guidance, and failure modes. The file is a Claude Code skill (loaded by Claude Code's skill discovery via the YAML frontmatter) but is human-readable as a regular markdown reference.
+
+The skill ships inside the installed package. To drop it into a Claude Code project (or your user-wide skills dir) without cloning the repo:
+
+```sh
+tephra skill --install                # writes to $CLAUDE_PROJECT_DIR/.claude/skills/tephra/SKILL.md
+                                      # (falls back to ~/.claude/skills/tephra/SKILL.md)
+tephra skill --install ~/.claude      # explicit target dir
+tephra skill                          # cat to stdout (pipe wherever you want)
+tephra skill --path                   # print the bundled file path
+```
 
 ## License
 
