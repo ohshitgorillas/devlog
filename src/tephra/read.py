@@ -139,32 +139,62 @@ def cmd_show(
         _print_entry(h)
 
 
-def _matches_find(h: HydratedEntry, term_lower: str, since: str | None) -> bool:
-    """Predicate for ``cmd_find``: term substring match within optional date window."""
+def _find_haystack(h: HydratedEntry, field: str) -> str:
+    """Return the lowercased haystack for ``cmd_find`` based on ``field`` scope."""
+    if field == "title":
+        return h.entry.title.lower()
+    body = "".join(_body_without_related(h.body))
+    if field == "body":
+        return body.lower()
+    return (h.entry.title + "\n" + body).lower()
+
+
+def _matches_find(
+    h: HydratedEntry, terms_lower: list[str], since: str | None, field: str
+) -> bool:
+    """Predicate for ``cmd_find``: all terms match (AND) within optional date window."""
     if since is not None and h.entry.date < since:
         return False
-    haystack = (h.entry.title + "\n" + "".join(h.body)).lower()
-    return term_lower in haystack
+    haystack = _find_haystack(h, field)
+    return all(t in haystack for t in terms_lower)
+
+
+def _collect_find_matches(
+    folder: str | None,
+    topic: str | None,
+    terms: list[str],
+    since: str | None,
+    field: str,
+    limit: int | None,
+) -> list[HydratedEntry]:
+    terms_lower = [t.lower() for t in terms]
+    matches = [
+        h
+        for h in _all_entries(folder, topic)
+        if _matches_find(h, terms_lower, since, field)
+    ]
+    if limit is not None and limit >= 0:
+        matches = matches[:limit]
+    return matches
 
 
 def cmd_find(
-    term: str,
+    terms: list[str],
     folder: str | None,
     topic: str | None,
     json_out: bool,
     since: str | None,
+    field: str = "both",
+    limit: int | None = None,
 ) -> None:
-    """Print entries whose title or body contains ``term`` (case-insensitive)."""
+    """Print entries matching all terms (case-insensitive AND), newest first."""
     _validate_scope(folder, topic)
-    term_lower = term.lower()
-    matches = [
-        h for h in _all_entries(folder, topic) if _matches_find(h, term_lower, since)
-    ]
+    matches = _collect_find_matches(folder, topic, terms, since, field, limit)
     if json_out:
         print(json.dumps([_entry_dict(h) for h in matches], indent=2))
         return
     if not matches:
-        sys.exit(f"No entries matching '{term}'")
+        sys.exit(f"No entries matching {' '.join(repr(t) for t in terms)}")
     for i, h in enumerate(matches):
         if i > 0:
             print()

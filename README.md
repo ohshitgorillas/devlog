@@ -85,8 +85,11 @@ Read commands (cross-topic by default; pass `-T TOPIC` to restrict to one topic,
 tephra show 2026-04-28          # entries on a date
 tephra show 0428                # MMDD: most recent past 04-28
 tephra find "wireguard"         # case-insensitive substring search
+tephra find wg peer             # multiple terms = AND (all must match)
 tephra find "wg" --days 7       # ... restricted to the last 7 days
 tephra find "wg" --since 2026-04-01   # ... or to entries on/after a date
+tephra find "wg" --in title     # restrict match to title (or body, or both [default])
+tephra find "wg" --limit 5      # cap to N newest matches
 tephra recent 7                 # last 7 calendar days (default 7)
 tephra list                     # headings only, no bodies
 tephra last                     # newest entry

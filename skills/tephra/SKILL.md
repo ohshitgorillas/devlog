@@ -114,7 +114,7 @@ Cross-topic by default. Pass `-T TOPIC` to restrict to one topic, or `-T Folder:
 |----|---------|------|
 | Entries on a date | `tephra show YYYY-MM-DD` | `--json` |
 | Date (MMDD) | `tephra show 0428` (most recent past) | `--json` |
-| Search | `tephra find TERM` (case-insensitive; `--days N` or `--since DATE` to limit window) | `--json` |
+| Search | `tephra find TERM [TERM ...]` (case-insensitive; multiple terms = AND; `--in {title,body,both}`, `--limit N`, `--days N`/`--since DATE`) | `--json` |
 | Last N days | `tephra recent [N]` (default 7) | `--json` |
 | Index | `tephra list` (headings only) | `--json` |
 | Newest | `tephra last` | `--json` |

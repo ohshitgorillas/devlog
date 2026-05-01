@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-05-01
+
+### Added
+
+- `tephra find` accepts multiple terms; all must match (AND). Single-term invocations behave as before.
+- `tephra find --in {title,body,both}` restricts the search field. Default `both` matches prior behavior, but the body haystack now excludes the trailing `**Related:**` line, so wikilink anchors no longer leak into body matches.
+- `tephra find --limit N` caps output to the N newest matches.
+
 ## [2.4.2] - 2026-05-01
 
 ### Fixed

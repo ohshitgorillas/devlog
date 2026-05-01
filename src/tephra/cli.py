@@ -167,10 +167,30 @@ def _add_read_subparsers(sub: argparse._SubParsersAction) -> None:
     p_show.add_argument("-T", "--topic", help="restrict to a single topic")
     p_show.add_argument("--json", action="store_true", dest="json_out")
 
-    p_find = sub.add_parser("find", help="search entries (case-insensitive)")
-    p_find.add_argument("term")
+    p_find = sub.add_parser(
+        "find",
+        help="search entries (case-insensitive; multiple terms = AND)",
+    )
+    p_find.add_argument(
+        "term",
+        nargs="+",
+        help="one or more terms; all must match (AND)",
+    )
     p_find.add_argument("-T", "--topic")
     p_find.add_argument("--json", action="store_true", dest="json_out")
+    p_find.add_argument(
+        "--in",
+        dest="field",
+        choices=("title", "body", "both"),
+        default="both",
+        help="which field to search (default: both)",
+    )
+    p_find.add_argument(
+        "--limit",
+        type=int,
+        metavar="N",
+        help="cap output to N newest matches",
+    )
     g_find = p_find.add_mutually_exclusive_group()
     g_find.add_argument(
         "--days",
@@ -380,7 +400,13 @@ def _dispatch_topic_aware(args: argparse.Namespace) -> None:
         "rm": lambda: cmd_rm(folder, write_topic, args.date, args.title, args.dry_run),
         "show": lambda: cmd_show(args.date, folder, topic, args.json_out),
         "find": lambda: cmd_find(
-            args.term, folder, topic, args.json_out, _resolve_find_since(args)
+            args.term,
+            folder,
+            topic,
+            args.json_out,
+            _resolve_find_since(args),
+            args.field,
+            args.limit,
         ),
         "recent": lambda: cmd_recent(args.days, folder, topic, args.json_out),
         "list": lambda: cmd_list(folder, topic, args.json_out),
