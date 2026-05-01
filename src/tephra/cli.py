@@ -348,13 +348,18 @@ def _dispatch_topic_aware(args: argparse.Namespace) -> None:
             f"-T 'Folder:' (folder-only) not allowed for '{args.cmd}'; "
             f"supply 'Folder:Topic' or 'Topic'"
         )
+    write_topic: str = topic if topic is not None else ""
     dispatch = {
         "add": lambda: insert_entry(
-            folder, topic, args.title, _resolve_bodies(args.entry), args.related or None
+            folder,
+            write_topic,
+            args.title,
+            _resolve_bodies(args.entry),
+            args.related or None,
         ),
         "amend": lambda: cmd_amend(
             folder,
-            topic,
+            write_topic,
             _resolve_bodies(args.entry),
             args.date,
             args.title,
@@ -363,16 +368,16 @@ def _dispatch_topic_aware(args: argparse.Namespace) -> None:
         ),
         "addend": lambda: cmd_addend(
             folder,
-            topic,
+            write_topic,
             _resolve_bodies(args.entry),
             args.date,
             args.title,
             args.related or None,
         ),
         "retitle": lambda: cmd_retitle(
-            folder, topic, args.date, args.title, args.new_title
+            folder, write_topic, args.date, args.title, args.new_title
         ),
-        "rm": lambda: cmd_rm(folder, topic, args.date, args.title, args.dry_run),
+        "rm": lambda: cmd_rm(folder, write_topic, args.date, args.title, args.dry_run),
         "show": lambda: cmd_show(args.date, folder, topic, args.json_out),
         "find": lambda: cmd_find(
             args.term, folder, topic, args.json_out, _resolve_find_since(args)
@@ -380,7 +385,7 @@ def _dispatch_topic_aware(args: argparse.Namespace) -> None:
         "recent": lambda: cmd_recent(args.days, folder, topic, args.json_out),
         "list": lambda: cmd_list(folder, topic, args.json_out),
         "last": lambda: cmd_last(folder, topic, args.json_out),
-        "exists": lambda: cmd_exists(folder, topic, args.date, args.title),
+        "exists": lambda: cmd_exists(folder, write_topic, args.date, args.title),
         "log": lambda: cmd_log(args.n),
         "diff": lambda: cmd_diff(args.ref),
         "undo": cmd_undo,

@@ -43,6 +43,7 @@ def parse_link_arg(arg: str) -> tuple[str | None, str, str, str | None, str]:
     head, anchor = arg.split("#", 1)
     head = head.strip()
     anchor = anchor.strip()
+    folder: str | None
     if ":" in head:
         folder, topic = head.split(":", 1)
         folder = folder.strip()
@@ -58,8 +59,7 @@ def parse_link_arg(arg: str) -> tuple[str | None, str, str, str | None, str]:
     m = _ANCHOR_PAT.match(anchor)
     if not m:
         sys.exit(
-            f"Invalid related ref '{arg}': anchor must be "
-            f"'YYYY-MM-DD [HH:MM] — Title'"
+            f"Invalid related ref '{arg}': anchor must be 'YYYY-MM-DD [HH:MM] — Title'"
         )
     return folder, topic, m.group(1), m.group(2), m.group(3)
 
