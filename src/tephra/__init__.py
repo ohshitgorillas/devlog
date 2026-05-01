@@ -1,3 +1,8 @@
 """tephra: topic-based markdown journal CLI for Obsidian-style vaults."""
 
-__version__ = "2.4.0"
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("tephra")
+except PackageNotFoundError:
+    __version__ = "0.0.0+unknown"
