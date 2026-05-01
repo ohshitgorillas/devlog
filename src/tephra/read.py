@@ -122,7 +122,13 @@ def _validate_scope(folder: str | None, topic: str | None) -> None:
     validate_topic(folder, topic)
 
 
-_DURATION_UNITS = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks"}
+_DURATION_UNITS = {
+    "s": "seconds",
+    "m": "minutes",
+    "h": "hours",
+    "d": "days",
+    "w": "weeks",
+}
 _DURATION_RE = re.compile(r"^(\d+)([smhdw])$")
 
 
