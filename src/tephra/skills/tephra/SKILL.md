@@ -25,19 +25,26 @@ Tool for keeping a topic-organized development journal as Obsidian-style markdow
 - Backticks for paths, commands, identifiers. HTML-tag-looking tokens (`<name>`, `<HOST>`) are auto-backticked on insert.
 - Match existing entries in the same topic — check `tephra last -T TOPIC` or `tephra within 3d -T TOPIC` first.
 - No marketing voice. No "successfully". No restating the title.
-- Always cross-link related prior entries with `--related`. Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra within 14d -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [HH:MM] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
+- Cross-link prior entries with `--related` only when the link is *causally direct* (see below). Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches; pass each *directly related* prior entry as `--related "Topic#YYYY-MM-DD [HH:MM] — Title"`. The flag is repeatable. Refs are validated — invalid anchors are rejected.
 
 ### When to add a related link
 
-Link to any prior entry that:
+Link only if you can state a causal sentence: "this entry **<does X>** to the thing the prior entry **<created / broke / tuned / started>**." If the sentence doesn't form, don't link. Allowed cases:
 
-- introduced the thing this entry modifies, fixes, or extends ("introduced", "added", "first deployed");
-- documented a bug or symptom that this entry fixes;
-- documented a related decision, alert, or threshold this entry tunes;
-- spans the same incident, refactor, or migration across multiple sessions;
-- touches an adjacent subsystem the reader might want to jump to (e.g. an `O11y` alert change linking to the `Bittorrent` exporter that emits the metric).
+- **Origin** — prior entry created the exact thing this entry modifies, fixes, extends, or removes.
+- **Bug → fix** — prior entry documented the symptom this entry resolves.
+- **Tuning chain** — prior entry set the same knob (value, threshold, policy, jail, alert) this entry adjusts. Same knob, not same subsystem.
+- **Continuation** — prior entry is an earlier step in the same incident, migration, or refactor arc.
 
-If you can't find anything to link after a quick `tephra find`, that's a valid outcome — but explicitly searched > silently skipped. The default assumption should be "this almost certainly relates to *something* prior; find it."
+Anti-patterns — do **not** link:
+
+- ❌ Same file, unrelated concern (compose edit for service A → unrelated compose edit for service B in same file).
+- ❌ Same subsystem, causally independent (two unrelated fail2ban tweaks weeks apart).
+- ❌ Same date, no causal tie.
+- ❌ "Reader might find it interesting" / "touches adjacent subsystem" — Obsidian search and backlinks handle discovery; `Related` is reserved for causal chain.
+- ❌ Topic-level kinship without entry-level kinship (both entries are about Storage ≠ related).
+
+Default when uncertain: **no link**. Tangential ≠ related. A bare entry with no `--related` is correct output when nothing causally upstream exists.
 
 ## Add new entry
 
@@ -150,7 +157,7 @@ tephra diff [REF]   # git show REF (default HEAD)
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
 - `undo` reverts only the most recent commit. For older fixes: `git -C "$(tephra config path)" revert <sha>` against the vault repo.
 - Before `add`: search today with `tephra within 1d` or `tephra find TERM --within 1d`. If a same-day same-topic entry already covers this change, `addend` to it instead of creating a new one.
-- Before `add` (separate pass, looking further back): `tephra find` for the subsystem and adjacent topics. Pass every relevant prior entry as `--related`. Skipping this step orphans the entry from the rest of the journal.
+- Before `add` (separate pass, looking further back): `tephra find` for the subsystem. Pass only *causally direct* prior entries as `--related` (see "When to add a related link"). Tangential matches — same file, same subsystem, same date with no causal tie — must be skipped. A wrong link is worse than no link: it pollutes the graph.
 - Never include sensitive information.
 
 ## Failure modes
