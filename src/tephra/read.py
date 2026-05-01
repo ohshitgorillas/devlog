@@ -1,9 +1,10 @@
-"""Read-only commands: show, find, recent, list, last, exists, log, diff."""
+"""Read-only commands: show, find, within, list, last, exists, log, diff."""
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -121,6 +122,29 @@ def _validate_scope(folder: str | None, topic: str | None) -> None:
     validate_topic(folder, topic)
 
 
+_DURATION_UNITS = {"s": "seconds", "m": "minutes", "h": "hours", "d": "days", "w": "weeks"}
+_DURATION_RE = re.compile(r"^(\d+)([smhdw])$")
+
+
+def parse_duration(spec: str) -> timedelta:
+    """Parse a duration string like ``30m``, ``12h``, ``4d``, ``2w``."""
+    m = _DURATION_RE.match(spec)
+    if not m:
+        sys.exit(
+            f"Invalid duration {spec!r}. Use N followed by s/m/h/d/w "
+            "(e.g. 30m, 12h, 4d, 2w)."
+        )
+    n, unit = int(m.group(1)), m.group(2)
+    if n == 0:
+        sys.exit(f"Duration must be > 0, got {spec!r}")
+    return timedelta(**{_DURATION_UNITS[unit]: n})
+
+
+def _entry_datetime(h: HydratedEntry) -> datetime:
+    t = h.entry.time or "00:00"
+    return datetime.strptime(f"{h.entry.date} {t}", "%Y-%m-%d %H:%M")
+
+
 def cmd_show(
     date_arg: str, folder: str | None, topic: str | None, json_out: bool
 ) -> None:
@@ -150,10 +174,10 @@ def _find_haystack(h: HydratedEntry, field: str) -> str:
 
 
 def _matches_find(
-    h: HydratedEntry, terms_lower: list[str], since: str | None, field: str
+    h: HydratedEntry, terms_lower: list[str], cutoff: datetime | None, field: str
 ) -> bool:
-    """Predicate for ``cmd_find``: all terms match (AND) within optional date window."""
-    if since is not None and h.entry.date < since:
+    """Predicate for ``cmd_find``: all terms match (AND) within optional time window."""
+    if cutoff is not None and _entry_datetime(h) < cutoff:
         return False
     haystack = _find_haystack(h, field)
     return all(t in haystack for t in terms_lower)
@@ -163,7 +187,7 @@ def _collect_find_matches(
     folder: str | None,
     topic: str | None,
     terms: list[str],
-    since: str | None,
+    cutoff: datetime | None,
     field: str,
     limit: int | None,
 ) -> list[HydratedEntry]:
@@ -171,7 +195,7 @@ def _collect_find_matches(
     matches = [
         h
         for h in _all_entries(folder, topic)
-        if _matches_find(h, terms_lower, since, field)
+        if _matches_find(h, terms_lower, cutoff, field)
     ]
     if limit is not None and limit >= 0:
         matches = matches[:limit]
@@ -183,13 +207,13 @@ def cmd_find(
     folder: str | None,
     topic: str | None,
     json_out: bool,
-    since: str | None,
+    cutoff: datetime | None,
     field: str = "both",
     limit: int | None = None,
 ) -> None:
     """Print entries matching all terms (case-insensitive AND), newest first."""
     _validate_scope(folder, topic)
-    matches = _collect_find_matches(folder, topic, terms, since, field, limit)
+    matches = _collect_find_matches(folder, topic, terms, cutoff, field, limit)
     if json_out:
         print(json.dumps([_entry_dict(h) for h in matches], indent=2))
         return
@@ -201,18 +225,18 @@ def cmd_find(
         _print_entry(h)
 
 
-def cmd_recent(
-    days: int, folder: str | None, topic: str | None, json_out: bool
+def cmd_within(
+    duration: str, folder: str | None, topic: str | None, json_out: bool
 ) -> None:
-    """Print entries from the last ``days`` days."""
+    """Print entries within the last ``duration`` (e.g. ``12h``, ``4d``)."""
     _validate_scope(folder, topic)
-    cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-    matches = [h for h in _all_entries(folder, topic) if h.entry.date >= cutoff]
+    cutoff = datetime.now() - parse_duration(duration)
+    matches = [h for h in _all_entries(folder, topic) if _entry_datetime(h) >= cutoff]
     if json_out:
         print(json.dumps([_entry_dict(h) for h in matches], indent=2))
         return
     if not matches:
-        print(f"No entries in the last {days} days")
+        print(f"No entries within {duration}")
         return
     for i, h in enumerate(matches):
         if i > 0:

@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-05-01
+
+### Added
+
+- `tephra within DURATION` subcommand. Filters entries by sub-day windows; units are `s`/`m`/`h`/`d`/`w` (e.g. `30m`, `12h`, `4d`, `2w`). Same `-T` and `--json` flags as the read commands.
+- `tephra find --within DURATION` flag. Same duration grammar as the `within` subcommand. Mutually exclusive with `--since DATE`.
+
+### Changed
+
+- `find` time-window cutoff is now compared against the entry's full `YYYY-MM-DD HH:MM` timestamp (or midnight if the entry has no time), not the date alone. This makes sub-day `--within` windows precise.
+
+### Removed
+
+- **Breaking:** `tephra recent [N]` subcommand. Replaced by `tephra within DURATION` — explicit units, no implicit "days" assumption. Migrate `tephra recent 7` → `tephra within 7d`.
+- **Breaking:** `tephra find --days N` flag. Replaced by `tephra find --within DURATION`. Migrate `--days 14` → `--within 14d`.
+
 ## [2.6.0] - 2026-05-01
 
 ### Added

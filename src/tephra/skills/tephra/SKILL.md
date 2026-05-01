@@ -23,9 +23,9 @@ Tool for keeping a topic-organized development journal as Obsidian-style markdow
 - Be terse, concise, accurate.
 - Lead with what changed. Then files. Then why if non-obvious.
 - Backticks for paths, commands, identifiers. HTML-tag-looking tokens (`<name>`, `<HOST>`) are auto-backticked on insert.
-- Match existing entries in the same topic — check `tephra last -T TOPIC` or `tephra recent 3 -T TOPIC` first.
+- Match existing entries in the same topic — check `tephra last -T TOPIC` or `tephra within 3d -T TOPIC` first.
 - No marketing voice. No "successfully". No restating the title.
-- Always cross-link related prior entries with `--related`. Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra recent 14 -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [HH:MM] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
+- Always cross-link related prior entries with `--related`. Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra within 14d -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [HH:MM] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
 
 ### When to add a related link
 
@@ -47,7 +47,7 @@ tephra add -T TOPIC -t "Brief title" -e "What changed, which files, why if non-o
 
 - `-T` is required and must be a known topic (see `tephra topic list`).
 - Bare `-T Topic` resolves to the configured default folder (see `tephra config show`). Override with `-T Folder:Topic`.
-- For read commands only (`show`, `find`, `recent`, `list`, `last`): `-T Folder:` (trailing colon, no topic) scopes to all topics in `Folder`. Write/existence commands reject this form.
+- For read commands only (`show`, `find`, `within`, `list`, `last`): `-T Folder:` (trailing colon, no topic) scopes to all topics in `Folder`. Write/existence commands reject this form.
 - Title: imperative, ≤60 chars.
 - Entry: factual + terse. What changed → files touched → why (only if non-obvious).
 - Title collision on same date in same topic = error. Pick distinct title or use `amend`/`addend`.
@@ -114,8 +114,8 @@ Cross-topic by default. Pass `-T TOPIC` to restrict to one topic, or `-T Folder:
 |----|---------|------|
 | Entries on a date | `tephra show YYYY-MM-DD` | `--json` |
 | Date (MMDD) | `tephra show 0428` (most recent past) | `--json` |
-| Search | `tephra find TERM [TERM ...]` (case-insensitive; multiple terms = AND; `--in {title,body,both}`, `--limit N`, `--days N`/`--since DATE`) | `--json` |
-| Last N days | `tephra recent [N]` (default 7) | `--json` |
+| Search | `tephra find TERM [TERM ...]` (case-insensitive; multiple terms = AND; `--in {title,body,both}`, `--limit N`, `--within DURATION`/`--since DATE`) | `--json` |
+| Within DURATION | `tephra within DURATION` (units: s/m/h/d/w; e.g. 30m, 12h, 7d, 2w) | `--json` |
 | Index | `tephra list` (headings only) | `--json` |
 | Newest | `tephra last` | `--json` |
 | Existence | `tephra exists -T TOPIC -d DATE -t "Title"` (exit 0/1) | — |
@@ -128,8 +128,8 @@ Reach for the log to answer questions about prior work. Map prompt shape to comm
 
 | Prompt shape | Command |
 |--------------|---------|
-| "changes to wireguard over the last 2 weeks" | `tephra find "wireguard" --days 14 --json` |
-| "nginx broke overnight" | `tephra find "nginx" --days 2` |
+| "changes to wireguard over the last 2 weeks" | `tephra find "wireguard" --within 2w --json` |
+| "nginx broke overnight" | `tephra find "nginx" --within 12h` |
 | "summarize yesterday's work" | `tephra show YYYY-MM-DD` (yesterday's date) |
 | "what did I last do to X?" | `tephra find "X"` then take newest match |
 | "see the most recent entry" | `tephra last` |
@@ -151,7 +151,7 @@ tephra diff [REF]   # git show REF (default HEAD)
 - Never invent dates. Tool sets today.
 - Never delete entries to "clean up" unless explicitly told. Use `amend` to correct content; use `rm` only when an entry is wrong/duplicate and the user has authorized removal.
 - `undo` reverts only the most recent commit. For older fixes: `git -C "$(tephra config path)" revert <sha>` against the vault repo.
-- Before `add`: search today with `tephra recent 1` or `tephra find TERM --days 1`. If a same-day same-topic entry already covers this change, `addend` to it instead of creating a new one.
+- Before `add`: search today with `tephra within 1d` or `tephra find TERM --within 1d`. If a same-day same-topic entry already covers this change, `addend` to it instead of creating a new one.
 - Before `add` (separate pass, looking further back): `tephra find` for the subsystem and adjacent topics. Pass every relevant prior entry as `--related`. Skipping this step orphans the entry from the rest of the journal.
 - Never include sensitive information.
 

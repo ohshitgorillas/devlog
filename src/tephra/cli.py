@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from . import __version__
 from .dates import parse_date_arg
@@ -15,8 +15,9 @@ from .read import (
     cmd_last,
     cmd_list,
     cmd_log,
-    cmd_recent,
     cmd_show,
+    cmd_within,
+    parse_duration,
 )
 from .skill import cmd_skill_install, cmd_skill_path, cmd_skill_print
 from .store import capture_manual_edits, cmd_manual_commit
@@ -194,19 +195,21 @@ def _add_read_subparsers(sub: argparse._SubParsersAction) -> None:
     )
     g_find = p_find.add_mutually_exclusive_group()
     g_find.add_argument(
-        "--days",
-        type=int,
-        metavar="N",
-        help="restrict to entries within the last N days",
+        "--within",
+        metavar="DURATION",
+        help="restrict to entries within the last DURATION (e.g. 30m, 12h, 2d, 2w)",
     )
     g_find.add_argument(
         "--since", metavar="DATE", help="restrict to entries on or after DATE"
     )
 
-    p_recent = sub.add_parser("recent", help="entries from the last N days (default 7)")
-    p_recent.add_argument("days", nargs="?", type=int, default=7)
-    p_recent.add_argument("-T", "--topic")
-    p_recent.add_argument("--json", action="store_true", dest="json_out")
+    p_within = sub.add_parser(
+        "within",
+        help="entries within the last DURATION (e.g. 30m, 12h, 4d, 2w)",
+    )
+    p_within.add_argument("duration", metavar="DURATION")
+    p_within.add_argument("-T", "--topic")
+    p_within.add_argument("--json", action="store_true", dest="json_out")
 
     p_list = sub.add_parser("list", help="print all entry headings (no bodies)")
     p_list.add_argument("-T", "--topic")
@@ -335,12 +338,12 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _resolve_find_since(args: argparse.Namespace) -> str | None:
-    """Translate ``--days`` / ``--since`` on ``find`` into an ISO date cutoff."""
-    if getattr(args, "days", None) is not None:
-        return (datetime.now() - timedelta(days=args.days)).strftime("%Y-%m-%d")
+def _resolve_find_cutoff(args: argparse.Namespace) -> datetime | None:
+    """Translate ``--within`` / ``--since`` on ``find`` into a datetime cutoff."""
+    if getattr(args, "within", None) is not None:
+        return datetime.now() - parse_duration(args.within)
     if getattr(args, "since", None) is not None:
-        return parse_date_arg(args.since)
+        return datetime.strptime(parse_date_arg(args.since), "%Y-%m-%d")
     return None
 
 
@@ -439,11 +442,11 @@ def _dispatch_topic_aware(args: argparse.Namespace) -> None:
             folder,
             topic,
             args.json_out,
-            _resolve_find_since(args),
+            _resolve_find_cutoff(args),
             args.field,
             args.limit,
         ),
-        "recent": lambda: cmd_recent(args.days, folder, topic, args.json_out),
+        "within": lambda: cmd_within(args.duration, folder, topic, args.json_out),
         "list": lambda: cmd_list(folder, topic, args.json_out),
         "last": lambda: cmd_last(folder, topic, args.json_out),
         "exists": lambda: cmd_exists(folder, write_topic, args.date, args.title),
