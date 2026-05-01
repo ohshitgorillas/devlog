@@ -7,19 +7,25 @@ import re
 import sys
 
 from .store import (
+    auto_sync_config_path,
     config_path,
     default_folder_path,
     ensure_vault,
     folder_dir,
     git_snapshot,
+    read_auto_sync,
     read_default_folder,
+    read_sync_metric_path,
+    sync_metric_config_path,
     topic_path,
     vault_dir,
     vault_source,
+    write_auto_sync,
     write_config_default_folder,
     write_config_vault,
     write_lines,
     write_lock,
+    write_sync_metric_path,
 )
 
 _TOPIC_NAME_PAT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]*$")
@@ -43,9 +49,7 @@ def parse_topic_arg(arg: str) -> tuple[str | None, str | None]:
     folder = folder.strip()
     topic = topic.strip()
     if not folder:
-        sys.exit(
-            f"-T '{arg}': folder required (form: 'Folder:Topic' or 'Folder:')"
-        )
+        sys.exit(f"-T '{arg}': folder required (form: 'Folder:Topic' or 'Folder:')")
     return folder, (topic or None)
 
 
@@ -186,6 +190,29 @@ def cmd_config_show() -> None:
     folder = read_default_folder()
     print(f"Default folder: {folder if folder else '<root>'}")
     print(f"Default folder config: {default_folder_path()}")
+    print(f"Auto-sync: {'on' if read_auto_sync() else 'off'}")
+    print(f"Auto-sync config: {auto_sync_config_path()}")
+    metric = read_sync_metric_path()
+    print(f"Sync metric: {metric if metric else '<unset>'}")
+    print(f"Sync metric config: {sync_metric_config_path()}")
+
+
+def cmd_config_auto_sync(value: str) -> None:
+    """Persist the auto-sync toggle. Accepts ``on`` or ``off`` (case-insensitive)."""
+    norm = value.strip().lower()
+    if norm not in ("on", "off"):
+        sys.exit("auto-sync value must be 'on' or 'off'")
+    write_auto_sync(norm == "on")
+    print(f"Auto-sync set to '{norm}'")
+
+
+def cmd_config_sync_metric(path: str) -> None:
+    """Persist or clear the sync-metric output path. Empty string clears."""
+    write_sync_metric_path(path or None)
+    if path:
+        print(f"Sync metric path set to '{path}'")
+    else:
+        print("Sync metric path cleared")
 
 
 def cmd_config_path() -> None:

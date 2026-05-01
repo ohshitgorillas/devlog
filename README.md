@@ -56,6 +56,14 @@ Add a new entry under a topic:
 tephra add -T Notes -t "Brief title" -e "What changed, files touched, why."
 ```
 
+`-e` is repeatable for multi-paragraph bodies (joined on blank lines, in CLI order):
+
+```sh
+tephra add -T Notes -t "Two paragraphs" \
+  -e "First paragraph." \
+  -e "Second paragraph."
+```
+
 Cross-link to other entries with `--related` (repeatable, validated):
 
 ```sh
@@ -80,17 +88,17 @@ tephra exists -T Notes -d 2026-04-28 -t "Title"   # exit 0 if exists, 1 otherwis
 Edit commands (default to newest entry in the topic; pass `-d` + `-t` to target a specific one):
 
 ```sh
-tephra amend -T TOPIC "new body"            # replace body; preserves Related line
-tephra amend -T TOPIC "new body" --related "Topic#anchor"   # rewrite Related
-tephra amend -T TOPIC "new body" --no-related               # drop Related
-tephra addend -T TOPIC "extra para"         # append paragraph above any Related line
-tephra addend -T TOPIC "" --related "Topic#anchor"          # extend Related only (deduped)
+tephra amend -T TOPIC -e "new body"                          # replace body; preserves Related
+tephra amend -T TOPIC -e "new body" --related "Topic#anchor" # rewrite Related
+tephra amend -T TOPIC -e "new body" --no-related             # drop Related
+tephra addend -T TOPIC -e "extra para"                       # append paragraph above any Related
+tephra addend -T TOPIC -e "" --related "Topic#anchor"        # extend Related only (deduped)
 tephra retitle -T TOPIC -d 2026-04-28 -t "Old" --to "New"
 tephra rm -T TOPIC -d 2026-04-28 -t "Title"
-tephra rm -T TOPIC -d 2026-04-28 -t "Title" -n              # dry-run preview
+tephra rm -T TOPIC -d 2026-04-28 -t "Title" -n               # dry-run preview
 ```
 
-`-d DATE` accepts `YYYY-MM-DD`, `YYYYMMDD`, or `MMDD`. There is no `edit` subcommand — open the topic file in your editor of choice (Obsidian GUI, vim, etc.); direct edits are auto-captured to git on the next CLI invocation.
+`amend` and `addend` accept the same repeatable `-e`/`--entry` as `add`. `-d DATE` accepts `YYYY-MM-DD`, `YYYYMMDD`, or `MMDD`. There is no `edit` subcommand — open the topic file in your editor of choice (Obsidian GUI, vim, etc.); direct edits are auto-captured to git on the next CLI invocation.
 
 Repo commands:
 

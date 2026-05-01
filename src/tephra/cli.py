@@ -20,9 +20,11 @@ from .read import (
 )
 from .store import capture_manual_edits, cmd_manual_commit
 from .topics import (
+    cmd_config_auto_sync,
     cmd_config_default_folder,
     cmd_config_path,
     cmd_config_show,
+    cmd_config_sync_metric,
     cmd_config_vault,
     cmd_folder_list,
     cmd_topic_add,
@@ -39,11 +41,24 @@ from .write import (
 )
 
 
-def _resolve_body(arg: str) -> str:
-    """``-`` reads from stdin; otherwise return ``arg`` verbatim."""
-    if arg == "-":
-        return sys.stdin.read()
-    return arg
+def _resolve_bodies(entries: list[str]) -> str:
+    """Resolve a list of ``-e/--entry`` values into a single body string.
+
+    At most one ``-`` is permitted (stdin is read once and substituted in
+    place). Empty values are silently dropped from the join, so a single
+    ``-e ""`` produces an empty body (matching the legacy single-flag
+    behavior, which downstream callers like ``addend`` use to extend the
+    Related line without adding a paragraph). Non-empty values are joined
+    with a single blank line between them, producing distinct paragraphs.
+    """
+    if not entries:
+        sys.exit("at least one -e/--entry value is required")
+    stdin_slots = sum(1 for e in entries if e == "-")
+    if stdin_slots > 1:
+        sys.exit("only one -e/--entry value may be `-` (stdin is read once)")
+    stdin_value = sys.stdin.read() if stdin_slots == 1 else ""
+    pieces = [stdin_value if raw == "-" else raw for raw in entries]
+    return "\n\n".join(p for p in pieces if p)
 
 
 def _parse_topic(arg: str | None) -> tuple[str | None, str | None]:
@@ -54,11 +69,22 @@ def _parse_topic(arg: str | None) -> tuple[str | None, str | None]:
 
 
 def _add_write_subparsers(sub: argparse._SubParsersAction) -> None:
+    body_help = (
+        "paragraph body; repeat for multiple paragraphs joined with a blank line "
+        "(use `-` for stdin)"
+    )
+
     p_add = sub.add_parser("add", help="add new entry to a topic")
     p_add.add_argument("-T", "--topic", required=True)
     p_add.add_argument("-t", "--title", required=True)
     p_add.add_argument(
-        "-e", "--entry", required=True, help="body text (use `-` to read stdin)"
+        "-e",
+        "--entry",
+        required=True,
+        action="append",
+        default=[],
+        metavar="BODY",
+        help=body_help,
     )
     p_add.add_argument(
         "--related",
@@ -72,7 +98,15 @@ def _add_write_subparsers(sub: argparse._SubParsersAction) -> None:
         "amend", help="replace body of entry (newest in topic by default)"
     )
     p_amend.add_argument("-T", "--topic", required=True)
-    p_amend.add_argument("body", help="new body (use `-` to read stdin)")
+    p_amend.add_argument(
+        "-e",
+        "--entry",
+        required=True,
+        action="append",
+        default=[],
+        metavar="BODY",
+        help=body_help,
+    )
     p_amend.add_argument("-d", "--date")
     p_amend.add_argument("-t", "--title")
     p_amend.add_argument(
@@ -90,7 +124,15 @@ def _add_write_subparsers(sub: argparse._SubParsersAction) -> None:
         "addend", help="append paragraph to entry (newest in topic by default)"
     )
     p_addend.add_argument("-T", "--topic", required=True)
-    p_addend.add_argument("body", help="paragraph (use `-` to read stdin)")
+    p_addend.add_argument(
+        "-e",
+        "--entry",
+        required=True,
+        action="append",
+        default=[],
+        metavar="BODY",
+        help=body_help,
+    )
     p_addend.add_argument("-d", "--date")
     p_addend.add_argument("-t", "--title")
     p_addend.add_argument(
@@ -171,7 +213,9 @@ def _add_topic_subparsers(sub: argparse._SubParsersAction) -> None:
     p_tadd = topic_sub.add_parser("add", help="create a new topic file")
     p_tadd.add_argument("name")
     p_tadd.add_argument(
-        "-F", "--folder", help="folder to create in (default: configured default folder)"
+        "-F",
+        "--folder",
+        help="folder to create in (default: configured default folder)",
     )
 
 
@@ -192,6 +236,18 @@ def _add_config_subparsers(sub: argparse._SubParsersAction) -> None:
     )
     p_default_folder.add_argument(
         "folder", help="folder name (empty string clears default → vault root)"
+    )
+    p_auto_sync = config_sub.add_parser(
+        "auto-sync",
+        help="enable/disable git pull --rebase before, push after every write",
+    )
+    p_auto_sync.add_argument("value", choices=("on", "off"))
+    p_sync_metric = config_sub.add_parser(
+        "sync-metric",
+        help="set or clear the Prometheus textfile output for sync status",
+    )
+    p_sync_metric.add_argument(
+        "path", help="output path (empty string clears, disabling the metric)"
     )
     config_sub.add_parser("show", help="print resolved vault path + source")
     config_sub.add_parser(
@@ -264,6 +320,10 @@ def _dispatch_config(args: argparse.Namespace, parser: argparse.ArgumentParser) 
         cmd_config_vault(args.path)
     elif args.config_cmd == "default-folder":
         cmd_config_default_folder(args.folder or None)
+    elif args.config_cmd == "auto-sync":
+        cmd_config_auto_sync(args.value)
+    elif args.config_cmd == "sync-metric":
+        cmd_config_sync_metric(args.path)
     elif args.config_cmd == "show":
         cmd_config_show()
     elif args.config_cmd == "path":
@@ -272,46 +332,30 @@ def _dispatch_config(args: argparse.Namespace, parser: argparse.ArgumentParser) 
         parser.parse_args([args.cmd, "--help"])
 
 
-def main() -> None:
-    """Capture manual vault edits, then dispatch the requested subcommand."""
-    parser = build_parser()
-    args = parser.parse_args()
-    if args.cmd != "manual-commit":
-        capture_manual_edits()
+_GROUP_DISPATCHERS = {
+    "topic": _dispatch_topic,
+    "folder": _dispatch_folder,
+    "config": _dispatch_config,
+}
 
-    if args.cmd is None:
-        parser.print_help()
-        return
 
-    if args.cmd == "topic":
-        _dispatch_topic(args, parser)
-        return
-
-    if args.cmd == "folder":
-        _dispatch_folder(args, parser)
-        return
-
-    if args.cmd == "config":
-        _dispatch_config(args, parser)
-        return
-
+def _dispatch_topic_aware(args: argparse.Namespace) -> None:
+    """Dispatch every command that takes a ``-T`` topic argument."""
     folder, topic = _parse_topic(getattr(args, "topic", None))
-
-    _topic_required = {"add", "amend", "addend", "retitle", "rm", "exists"}
-    if args.cmd in _topic_required and topic is None:
+    topic_required = {"add", "amend", "addend", "retitle", "rm", "exists"}
+    if args.cmd in topic_required and topic is None:
         sys.exit(
             f"-T 'Folder:' (folder-only) not allowed for '{args.cmd}'; "
             f"supply 'Folder:Topic' or 'Topic'"
         )
-
     dispatch = {
         "add": lambda: insert_entry(
-            folder, topic, args.title, _resolve_body(args.entry), args.related or None
+            folder, topic, args.title, _resolve_bodies(args.entry), args.related or None
         ),
         "amend": lambda: cmd_amend(
             folder,
             topic,
-            _resolve_body(args.body),
+            _resolve_bodies(args.entry),
             args.date,
             args.title,
             args.related or None,
@@ -320,7 +364,7 @@ def main() -> None:
         "addend": lambda: cmd_addend(
             folder,
             topic,
-            _resolve_body(args.body),
+            _resolve_bodies(args.entry),
             args.date,
             args.title,
             args.related or None,
@@ -343,6 +387,22 @@ def main() -> None:
         "manual-commit": lambda: cmd_manual_commit(args.message),
     }
     dispatch[args.cmd]()
+
+
+def main() -> None:
+    """Capture manual vault edits, then dispatch the requested subcommand."""
+    parser = build_parser()
+    args = parser.parse_args()
+    if args.cmd != "manual-commit":
+        capture_manual_edits()
+    if args.cmd is None:
+        parser.print_help()
+        return
+    group = _GROUP_DISPATCHERS.get(args.cmd)
+    if group is not None:
+        group(args, parser)
+        return
+    _dispatch_topic_aware(args)
 
 
 if __name__ == "__main__":

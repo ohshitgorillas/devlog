@@ -59,6 +59,16 @@ tephra add -T TOPIC -t "Title" -e $'line1\nline2'
 some-cmd | tephra add -T TOPIC -t "Title" -e -
 ```
 
+`-e` is repeatable — each value becomes a separate paragraph (joined with a blank line, in CLI order):
+
+```sh
+tephra add -T TOPIC -t "Title" \
+  -e "First paragraph." \
+  -e "Second paragraph."
+```
+
+At most one `-e` may be `-` (stdin is read once). Empty `-e ""` slots are dropped (so `addend -e "" --related ...` still extends the Related line without adding a paragraph). Same `-e` flag and join semantics apply on `amend` and `addend`.
+
 Cross-link to other entries with `--related`:
 
 ```sh
@@ -84,17 +94,17 @@ Default target = newest entry in the topic. Pass `-d YYYY-MM-DD -t "Title"` (or 
 
 | Op | Command |
 |----|---------|
-| Append paragraph | `tephra addend -T TOPIC "more context"` |
-| Append paragraph + extend Related line | `tephra addend -T TOPIC "..." --related "Topic#anchor"` |
-| Replace body, keep heading + Related | `tephra amend -T TOPIC "new body"` |
-| Replace body + rewrite Related | `tephra amend -T TOPIC "..." --related "Topic#anchor"` |
-| Replace body + drop Related | `tephra amend -T TOPIC "..." --no-related` |
+| Append paragraph | `tephra addend -T TOPIC -e "more context"` |
+| Append paragraph + extend Related line | `tephra addend -T TOPIC -e "..." --related "Topic#anchor"` |
+| Replace body, keep heading + Related | `tephra amend -T TOPIC -e "new body"` |
+| Replace body + rewrite Related | `tephra amend -T TOPIC -e "..." --related "Topic#anchor"` |
+| Replace body + drop Related | `tephra amend -T TOPIC -e "..." --no-related` |
 | Rename | `tephra retitle -T TOPIC -d 2026-04-28 -t "Old" --to "New"` |
 | Delete | `tephra rm -T TOPIC -d 2026-04-28 -t "Title"` |
 | Preview delete | `tephra rm -T TOPIC -d 2026-04-28 -t "Title" -n` |
 | Revert last commit | `tephra undo` |
 
-`amend` / `addend` accept `-` for stdin body.
+`amend` / `addend` use the same repeatable `-e`/`--entry` as `add`. Pass `-e -` to read body from stdin.
 
 ## Read
 
@@ -158,3 +168,30 @@ tephra diff [REF]   # git show REF (default HEAD)
 The vault path is stored in `$XDG_CONFIG_HOME/tephra/vault` (typically `~/.config/tephra/vault`). Set with `tephra config vault PATH`; inspect with `tephra config show`. Default if unset: `$XDG_DATA_HOME/tephra/vault` (typically `~/.local/share/tephra/vault`).
 
 The default folder for `-T Topic` is stored at `$XDG_CONFIG_HOME/tephra/default_folder`. Set with `tephra config default-folder NAME`; clear with empty string (writes go to vault root).
+
+## Auto-sync
+
+Optional. When enabled and the vault repo has an `origin` remote, every CLI write op runs `git pull --rebase --autostash` before the local commit and `git push` after.
+
+```sh
+tephra config auto-sync on        # enable
+tephra config auto-sync off       # disable
+```
+
+- **Pull conflict:** the write is aborted and the repo is left mid-rebase. Subsequent tephra writes refuse to run until you finish the rebase manually:
+  ```sh
+  git -C "$(tephra config path)" status
+  git -C "$(tephra config path)" rebase --continue   # or --abort
+  ```
+- **Network failure on pull:** warns to stderr, continues with the local commit. Offline use keeps working; the next successful sync reconciles.
+- **Push failure:** warns to stderr; the local commit is preserved. The next write op's pre-pull + push will reconcile.
+- **No `origin` remote / auto-sync off:** behaves identically to no-sync mode (no-op).
+
+Optional Prometheus textfile metric:
+
+```sh
+tephra config sync-metric /var/lib/node_exporter/textfile_collector/tephra_sync.prom
+tephra config sync-metric ""       # disable
+```
+
+Emits `tephra_sync_status` (1 clean, 0 conflict/push failure) and `tephra_sync_last_attempt` (Unix timestamp), atomically (tmp + rename) on every sync attempt.

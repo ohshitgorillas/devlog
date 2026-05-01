@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-04-30
+
+### Added
+
+- Repeatable `-e`/`--entry` on `add`, `amend`, and `addend`. Non-empty values join with a single blank line between them, producing distinct paragraphs in the entry body. A single `-e "x"` invocation behaves identically to before. At most one `-e` may be `-` (stdin is read once and substituted in place). Empty `-e ""` slots are dropped from the join, preserving the legacy `addend -e "" --related ...` pattern (extends Related line without adding a paragraph). On first push (no upstream tracked yet) the upstream is set automatically; subsequent pushes are plain.
+- Auto-sync: opt-in `git pull --rebase --autostash` before every commit and `git push` after, gated by `tephra config auto-sync on|off` and the presence of an `origin` remote on the vault repo. Hooks into the existing commit sites (`add`, `amend`, `addend`, `retitle`, `rm`, `topic add`, `manual-commit`, and the `manual edit (captured)` capture path). Pull conflicts (mid-rebase **or** stash-pop conflict markers from `--autostash`) abort the write with a resolution hint and leave the repo in the conflicted state; subsequent tephra writes refuse to run until the conflict is resolved. Network or push failures warn to stderr but do not block local writes — offline use keeps working and the next successful sync reconciles.
+- Optional Prometheus textfile metric for sync status. `tephra config sync-metric PATH` writes `tephra_sync_status` (1 clean, 0 conflict/push failure) and `tephra_sync_last_attempt` (Unix timestamp) atomically (tmp + rename) to `PATH` on every sync attempt. `tephra config sync-metric ""` clears.
+- `tephra config show` now also reports auto-sync state and the sync-metric path.
+
+### Changed
+
+- `amend` and `addend` no longer accept a positional `body`; pass the body via `-e`/`--entry` (matching `add`). Stdin sentinel `-` continues to work via `-e -`.
+
 ## [2.3.0] - 2026-04-29
 
 ### Added

@@ -34,6 +34,7 @@ from .topics import validate_topic
 def _label(folder: str | None, topic: str) -> str:
     return f"{folder}:{topic}" if folder else topic
 
+
 _HTML_TAG_PAT = re.compile(r"(?<!`)<([a-zA-Z][A-Za-z0-9_-]*)>(?!`)")
 
 

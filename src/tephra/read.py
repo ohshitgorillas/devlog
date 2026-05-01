@@ -33,9 +33,7 @@ class HydratedEntry:
     folder: str | None = None
 
 
-def _hydrate(
-    topic: str, lines: list[str], folder: str | None
-) -> list[HydratedEntry]:
+def _hydrate(topic: str, lines: list[str], folder: str | None) -> list[HydratedEntry]:
     return [
         HydratedEntry(e, lines[e.start + 1 : e.end], folder)
         for e in parse_entries(topic, lines)
@@ -61,9 +59,7 @@ def _resolve_scope(
     return [(target_folder, t) for t in list_topics(target_folder)]
 
 
-def _all_entries(
-    folder: str | None, topic: str | None
-) -> list[HydratedEntry]:
+def _all_entries(folder: str | None, topic: str | None) -> list[HydratedEntry]:
     """Return entries for the resolved scope, sorted newest first."""
     out: list[HydratedEntry] = []
     for f, t in _resolve_scope(folder, topic):
@@ -232,9 +228,7 @@ def cmd_last(folder: str | None, topic: str | None, json_out: bool) -> None:
     _print_entry(h)
 
 
-def cmd_exists(
-    folder: str | None, topic: str, date_arg: str, title: str
-) -> None:
+def cmd_exists(folder: str | None, topic: str, date_arg: str, title: str) -> None:
     """Exit 0 if the entry exists, 1 otherwise."""
     validate_topic(folder, topic)
     date = parse_date_arg(date_arg)

@@ -9,6 +9,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 from dataclasses import dataclass
 from typing import Iterator
 
@@ -28,6 +29,18 @@ def default_folder_path() -> str:
     """Return the path to the per-user default-folder config file."""
     xdg = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
     return os.path.join(xdg, "tephra", "default_folder")
+
+
+def auto_sync_config_path() -> str:
+    """Return the path to the per-user auto-sync toggle config file."""
+    xdg = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return os.path.join(xdg, "tephra", "auto_sync")
+
+
+def sync_metric_config_path() -> str:
+    """Return the path to the per-user sync-metric path config file."""
+    xdg = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    return os.path.join(xdg, "tephra", "sync_metric_path")
 
 
 def _read_config_vault() -> str | None:
@@ -54,6 +67,51 @@ def read_default_folder() -> str | None:
     except OSError:
         return None
     return value or None
+
+
+def read_auto_sync() -> bool:
+    """Return True iff auto-sync is enabled in the user config."""
+    path = auto_sync_config_path()
+    if not os.path.isfile(path):
+        return False
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read().strip().lower() == "on"
+    except OSError:
+        return False
+
+
+def read_sync_metric_path() -> str | None:
+    """Return the configured sync-metric output path, or None if unset."""
+    path = sync_metric_config_path()
+    if not os.path.isfile(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as f:
+            value = f.read().strip()
+    except OSError:
+        return None
+    return os.path.expanduser(value) if value else None
+
+
+def write_auto_sync(on: bool) -> None:
+    """Persist the auto-sync toggle (``on``/``off``) in the user config file."""
+    cfg = auto_sync_config_path()
+    os.makedirs(os.path.dirname(cfg), exist_ok=True)
+    with open(cfg, "w", encoding="utf-8") as f:
+        f.write("on\n" if on else "off\n")
+
+
+def write_sync_metric_path(path: str | None) -> None:
+    """Persist the sync-metric output path. Pass None/empty to clear."""
+    cfg = sync_metric_config_path()
+    os.makedirs(os.path.dirname(cfg), exist_ok=True)
+    if not path:
+        if os.path.isfile(cfg):
+            os.unlink(cfg)
+        return
+    with open(cfg, "w", encoding="utf-8") as f:
+        f.write(path + "\n")
 
 
 def vault_source() -> tuple[str, str]:
@@ -192,9 +250,9 @@ def parse_entries(topic: str, lines: list[str]) -> list[Entry]:
         if m:
             starts.append((i, m.group(1), m.group(2), m.group(3)))
     entries: list[Entry] = []
-    for idx, (start, date, time, title) in enumerate(starts):
+    for idx, (start, date, time_str, title) in enumerate(starts):
         end = starts[idx + 1][0] if idx + 1 < len(starts) else len(lines)
-        entries.append(Entry(topic, date, time, title, start, end))
+        entries.append(Entry(topic, date, time_str, title, start, end))
     return entries
 
 
@@ -258,8 +316,154 @@ def init_repo(repo: str) -> None:
         _git(repo, "config", "user.name", "tephra")
 
 
+def _origin_exists(repo: str) -> bool:
+    """Return True iff the vault repo has a remote named ``origin``."""
+    return _git(repo, "remote", "get-url", "origin", check=False).returncode == 0
+
+
+def _rebase_in_progress(repo: str) -> bool:
+    """Return True iff a git rebase is partway through in ``repo``."""
+    git_dir = os.path.join(repo, ".git")
+    return any(
+        os.path.isdir(os.path.join(git_dir, d))
+        for d in ("rebase-merge", "rebase-apply")
+    )
+
+
+def _has_unmerged_paths(repo: str) -> bool:
+    """Return True iff the index has unmerged entries (stash-pop or merge conflicts)."""
+    res = _git(repo, "ls-files", "--unmerged", check=False)
+    return bool(res.stdout.strip())
+
+
+def _abort_on_pending_conflict(repo: str) -> None:
+    """Exit if a rebase is mid-flight or unmerged paths exist; otherwise return."""
+    if not (_rebase_in_progress(repo) or _has_unmerged_paths(repo)):
+        return
+    sys.exit(
+        f"tephra: vault {repo} has unresolved sync conflict. Resolve before retrying:\n"
+        f"  git -C {repo} status\n"
+        f"  # rebase in progress: git -C {repo} rebase --continue   # or --abort\n"
+        f"  # stash-pop conflict: edit conflict markers, git add -A, git stash drop"
+    )
+
+
+def _pull_rebase(repo: str) -> bool:
+    """Run ``git pull --rebase --autostash``.
+
+    Returns True on clean pull. On rebase or stash-pop conflict, exits
+    non-zero with a resolution hint and leaves the repo in the conflicted
+    state. On network/other failure, prints a warning to stderr and
+    returns False (caller continues with local commit).
+    """
+    res = _git(repo, "pull", "--rebase", "--autostash", check=False)
+    if res.returncode != 0 and not (
+        _rebase_in_progress(repo) or _has_unmerged_paths(repo)
+    ):
+        print(
+            f"warning: tephra auto-sync pull failed (continuing offline): "
+            f"{res.stderr.strip() or res.stdout.strip()}",
+            file=sys.stderr,
+        )
+        return False
+    if _rebase_in_progress(repo) or _has_unmerged_paths(repo):
+        sys.stderr.write(res.stdout)
+        sys.stderr.write(res.stderr)
+        _write_sync_metric(False)
+        _abort_on_pending_conflict(repo)
+    return True
+
+
+def _push(repo: str) -> bool:
+    """Push HEAD to origin, setting upstream on first push.
+
+    Returns True on success, False on failure (caller warns and continues).
+    """
+    upstream = _git(
+        repo, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}", check=False
+    )
+    if upstream.returncode != 0:
+        push = _git(repo, "push", "-u", "origin", "HEAD", check=False)
+    else:
+        push = _git(repo, "push", check=False)
+    if push.returncode != 0:
+        print(
+            f"warning: tephra auto-sync push failed (local commit kept): "
+            f"{push.stderr.strip() or push.stdout.strip()}",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+def _write_sync_metric(ok: bool) -> None:
+    """Atomically write Prometheus textfile gauges for the last sync attempt."""
+    path = read_sync_metric_path()
+    if not path:
+        return
+    vault = vault_dir().replace("\\", "\\\\").replace('"', '\\"')
+    timestamp = int(time.time())
+    content = (
+        "# HELP tephra_sync_status 1 if last sync clean, 0 if conflict or push failure\n"
+        "# TYPE tephra_sync_status gauge\n"
+        f'tephra_sync_status{{vault="{vault}"}} {1 if ok else 0}\n'
+        "# HELP tephra_sync_last_attempt Unix timestamp of last sync attempt\n"
+        "# TYPE tephra_sync_last_attempt gauge\n"
+        f'tephra_sync_last_attempt{{vault="{vault}"}} {timestamp}\n'
+    )
+    try:
+        directory = os.path.dirname(path) or "."
+        os.makedirs(directory, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(prefix=".tephra_sync.", dir=directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+            os.replace(tmp, path)
+        except Exception:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+            raise
+    except OSError as e:
+        print(f"warning: tephra metric write failed: {e}", file=sys.stderr)
+
+
+def _stage_and_commit(repo: str, message: str) -> bool:
+    """Stage everything and commit with ``message``. Return True if a commit was made."""
+    _git(repo, "add", "-A")
+    cached = _git(repo, "diff", "--cached", "--quiet", check=False)
+    if cached.returncode == 0:
+        return False
+    _git(repo, "commit", "-q", "-m", message)
+    return True
+
+
+def _sync_aware_commit(repo: str, message: str) -> bool:
+    """Pre-pull (if sync on), stage+commit, post-push (if sync on, and a commit was made).
+
+    Returns True if a commit was created, False if the working tree was clean.
+    Pull conflicts exit non-zero. Network/push failures warn but return normally.
+    """
+    sync_enabled = read_auto_sync() and _origin_exists(repo)
+    pull_ok = True
+    if sync_enabled:
+        _abort_on_pending_conflict(repo)
+        pull_ok = _pull_rebase(repo)
+    committed = _stage_and_commit(repo, message)
+    if not committed:
+        if sync_enabled:
+            _write_sync_metric(pull_ok)
+        return False
+    if sync_enabled:
+        push_ok = _push(repo)
+        _write_sync_metric(pull_ok and push_ok)
+    return True
+
+
 def capture_manual_edits() -> None:
-    """Commit any uncommitted vault changes as 'manual edit (captured)'."""
+    """Commit any uncommitted vault changes as 'manual edit (captured)'.
+
+    Auto-syncs (pull/push) when enabled and a commit will be made.
+    """
     repo = vault_dir()
     if not os.path.isdir(os.path.join(repo, ".git")):
         return
@@ -270,12 +474,8 @@ def capture_manual_edits() -> None:
         ).stdout.strip()
         if diff.returncode == 0 and not untracked:
             return
-        _git(repo, "add", "-A")
-        cached = _git(repo, "diff", "--cached", "--quiet", check=False)
-        if cached.returncode == 0:
-            return
-        _git(repo, "commit", "-q", "-m", "manual edit (captured)")
-        print(f"note: captured manual edit in {repo}", file=sys.stderr)
+        if _sync_aware_commit(repo, "manual edit (captured)"):
+            print(f"note: captured manual edit in {repo}", file=sys.stderr)
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         print(f"warning: capture_manual_edits failed: {e}", file=sys.stderr)
 
@@ -285,11 +485,8 @@ def cmd_manual_commit(message: str) -> None:
     repo = vault_dir()
     init_repo(repo)
     try:
-        _git(repo, "add", "-A")
-        cached = _git(repo, "diff", "--cached", "--quiet", check=False)
-        if cached.returncode == 0:
+        if not _sync_aware_commit(repo, message):
             sys.exit("nothing to commit")
-        _git(repo, "commit", "-q", "-m", message)
         print(f"committed manual edit: {message}")
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         sys.exit(f"manual-commit failed: {e}")
@@ -300,9 +497,6 @@ def git_snapshot(message: str) -> None:
     repo = vault_dir()
     try:
         init_repo(repo)
-        _git(repo, "add", "-A")
-        diff = _git(repo, "diff", "--cached", "--quiet", check=False)
-        if diff.returncode != 0:
-            _git(repo, "commit", "-q", "-m", message)
+        _sync_aware_commit(repo, message)
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         print(f"warning: git snapshot failed: {e}", file=sys.stderr)
