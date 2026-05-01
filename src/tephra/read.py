@@ -1,4 +1,4 @@
-"""Read-only commands: show, find, within, list, last, exists, log, diff."""
+"""Read-only commands: show, find, within, list, last, log, diff."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ from .related import find_related_line, split_related_links
 from .store import (
     Entry,
     RELATED_PAT,
-    find_entry,
     parse_entries,
     read_default_folder,
     read_lines,
@@ -286,18 +285,6 @@ def cmd_last(folder: str | None, topic: str | None, json_out: bool) -> None:
         print(json.dumps(_entry_dict(h), indent=2))
         return
     _print_entry(h)
-
-
-def cmd_exists(folder: str | None, topic: str, date_arg: str, title: str) -> None:
-    """Exit 0 if the entry exists, 1 otherwise."""
-    validate_topic(folder, topic)
-    date = parse_date_arg(date_arg)
-    path = topic_path(topic, folder)
-    if not os.path.isfile(path):
-        sys.exit(1)
-    lines = read_lines(path)
-    if find_entry(topic, lines, date, title) is None:
-        sys.exit(1)
 
 
 def _ensure_repo() -> str:

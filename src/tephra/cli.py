@@ -7,10 +7,8 @@ import sys
 from datetime import datetime
 
 from . import __version__
-from .dates import parse_date_arg
 from .read import (
     cmd_diff,
-    cmd_exists,
     cmd_find,
     cmd_last,
     cmd_list,
@@ -193,14 +191,10 @@ def _add_read_subparsers(sub: argparse._SubParsersAction) -> None:
         metavar="N",
         help="cap output to N newest matches",
     )
-    g_find = p_find.add_mutually_exclusive_group()
-    g_find.add_argument(
+    p_find.add_argument(
         "--within",
         metavar="DURATION",
         help="restrict to entries within the last DURATION (e.g. 30m, 12h, 2d, 2w)",
-    )
-    g_find.add_argument(
-        "--since", metavar="DATE", help="restrict to entries on or after DATE"
     )
 
     p_within = sub.add_parser(
@@ -218,13 +212,6 @@ def _add_read_subparsers(sub: argparse._SubParsersAction) -> None:
     p_last = sub.add_parser("last", help="print newest entry")
     p_last.add_argument("-T", "--topic")
     p_last.add_argument("--json", action="store_true", dest="json_out")
-
-    p_exists = sub.add_parser(
-        "exists", help="exit 0 if entry exists, 1 otherwise (no output)"
-    )
-    p_exists.add_argument("-T", "--topic", required=True)
-    p_exists.add_argument("-d", "--date", required=True)
-    p_exists.add_argument("-t", "--title", required=True)
 
 
 def _add_topic_subparsers(sub: argparse._SubParsersAction) -> None:
@@ -339,11 +326,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _resolve_find_cutoff(args: argparse.Namespace) -> datetime | None:
-    """Translate ``--within`` / ``--since`` on ``find`` into a datetime cutoff."""
+    """Translate ``--within`` on ``find`` into a datetime cutoff."""
     if getattr(args, "within", None) is not None:
         return datetime.now() - parse_duration(args.within)
-    if getattr(args, "since", None) is not None:
-        return datetime.strptime(parse_date_arg(args.since), "%Y-%m-%d")
     return None
 
 
@@ -400,7 +385,7 @@ _GROUP_DISPATCHERS = {
 def _dispatch_topic_aware(args: argparse.Namespace) -> None:
     """Dispatch every command that takes a ``-T`` topic argument."""
     folder, topic = _parse_topic(getattr(args, "topic", None))
-    topic_required = {"add", "amend", "addend", "retitle", "rm", "exists"}
+    topic_required = {"add", "amend", "addend", "retitle", "rm"}
     if args.cmd in topic_required and topic is None:
         sys.exit(
             f"-T 'Folder:' (folder-only) not allowed for '{args.cmd}'; "
@@ -449,7 +434,6 @@ def _dispatch_topic_aware(args: argparse.Namespace) -> None:
         "within": lambda: cmd_within(args.duration, folder, topic, args.json_out),
         "list": lambda: cmd_list(folder, topic, args.json_out),
         "last": lambda: cmd_last(folder, topic, args.json_out),
-        "exists": lambda: cmd_exists(folder, write_topic, args.date, args.title),
         "log": lambda: cmd_log(args.n),
         "diff": lambda: cmd_diff(args.ref),
         "undo": cmd_undo,

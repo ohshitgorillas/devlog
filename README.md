@@ -21,7 +21,7 @@ Getting information out of the log for agents was its own hurdle: `grep` doesn't
 - Atomic writes (tempfile + `os.replace`), so a crash mid-write cannot leave a file corrupt.
 - A file lock around every write, so concurrent `tephra` invocations on the same host serialize cleanly instead of clobbering each other.
 - A private git repo at the vault root that auto-commits every CLI write. Direct edits to topic files (with Obsidian, `vim`, `sed`, an editor plugin, whatever) are detected on the next CLI invocation and committed as `manual edit (captured)`, so nothing slips past the history.
-- Read commands (`show`, `find`, `within`, `list`, `last`, `exists`) with optional `--json` output, suitable for piping into other tools or AI agents. Cross-topic by default; `-T TOPIC` filters.
+- Read commands (`show`, `find`, `within`, `list`, `last`) with optional `--json` output, suitable for piping into other tools or AI agents. Cross-topic by default; `-T TOPIC` filters.
 - Edit commands (`amend`, `addend`, `retitle`, `rm`) that target the newest entry in a topic by default, or any entry via `--date` + `--title`.
 - An `undo` command that wraps `git revert HEAD` on the data repo, so even a bad write is recoverable without reaching into git directly.
 
@@ -87,13 +87,11 @@ tephra show 0428                # MMDD: most recent past 04-28
 tephra find "wireguard"         # case-insensitive substring search
 tephra find wg peer             # multiple terms = AND (all must match)
 tephra find "wg" --within 7d    # ... restricted to last 7 days (units: s/m/h/d/w)
-tephra find "wg" --since 2026-04-01   # ... or to entries on/after a date
 tephra find "wg" --in title     # restrict match to title (or body, or both [default])
 tephra find "wg" --limit 5      # cap to N newest matches
 tephra within 7d                # last 7 days (units: s/m/h/d/w; e.g. 30m, 12h, 2w)
 tephra list                     # headings only, no bodies
 tephra last                     # newest entry
-tephra exists -T Notes -d 2026-04-28 -t "Title"   # exit 0 if exists, 1 otherwise
 ```
 
 Edit commands (default to newest entry in the topic; pass `-d` + `-t` to target a specific one):

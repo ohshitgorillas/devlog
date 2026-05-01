@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2026-05-01
+
+### Added
+
+- `tephra retitle` now rewrites inbound `[[...]]` cross-references vault-wide so links don't rot. Folder-qualified `[[Folder:Topic#...]]` matches rewrite anywhere; bare `[[Topic#...]]` matches rewrite only in files within the same folder as the retitled topic (bare refs resolve folder-locally). Rewrites happen in the same git commit as the heading change. Commit/output suffix reports counts: `(N links in M topics)`.
+
+### Removed
+
+- **Breaking:** `tephra find --since DATE` flag. Redundant with `--within DURATION`; only one date-window grammar should exist. Flag was introduced in 3.0.0 (one day prior); removed before any practical adoption. Use `--within DURATION` instead.
+- **Breaking:** `tephra exists -T TOPIC -d DATE -t "Title"` subcommand. Niche, low usage. Equivalent: `tephra show DATE -T TOPIC --json | jq 'any(.title=="Title")'`. Title collisions on `add` are still rejected at write time.
+
 ## [3.0.0] - 2026-05-01
 
 ### Added

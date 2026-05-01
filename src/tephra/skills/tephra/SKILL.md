@@ -114,11 +114,10 @@ Cross-topic by default. Pass `-T TOPIC` to restrict to one topic, or `-T Folder:
 |----|---------|------|
 | Entries on a date | `tephra show YYYY-MM-DD` | `--json` |
 | Date (MMDD) | `tephra show 0428` (most recent past) | `--json` |
-| Search | `tephra find TERM [TERM ...]` (case-insensitive; multiple terms = AND; `--in {title,body,both}`, `--limit N`, `--within DURATION`/`--since DATE`) | `--json` |
+| Search | `tephra find TERM [TERM ...]` (case-insensitive; multiple terms = AND; `--in {title,body,both}`, `--limit N`, `--within DURATION`) | `--json` |
 | Within DURATION | `tephra within DURATION` (units: s/m/h/d/w; e.g. 30m, 12h, 7d, 2w) | `--json` |
 | Index | `tephra list` (headings only) | `--json` |
 | Newest | `tephra last` | `--json` |
-| Existence | `tephra exists -T TOPIC -d DATE -t "Title"` (exit 0/1) | — |
 
 Prefer `--json` when piping into another tool or parsing programmatically.
 
@@ -133,7 +132,6 @@ Reach for the log to answer questions about prior work. Map prompt shape to comm
 | "summarize yesterday's work" | `tephra show YYYY-MM-DD` (yesterday's date) |
 | "what did I last do to X?" | `tephra find "X"` then take newest match |
 | "see the most recent entry" | `tephra last` |
-| "summarize all project changes since April 1" | `tephra find "project" --since 2026-04-01` |
 | "did I ever fix Z?" | `tephra find "Z"` |
 
 Use `--json` when feeding output back into reasoning — the structured `{topic, date, time, title, body, related}` shape is easier to summarize than raw markdown.

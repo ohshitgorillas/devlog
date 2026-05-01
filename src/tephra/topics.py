@@ -73,6 +73,17 @@ def list_topics(folder: str | None) -> list[str]:
     return _list_md_in(folder_dir(folder))
 
 
+def iter_all_topic_paths() -> list[tuple[str | None, str, str]]:
+    """Return ``(folder, topic, abs_path)`` for every topic file in the vault."""
+    out: list[tuple[str | None, str, str]] = []
+    for t in list_topics(None):
+        out.append((None, t, topic_path(t, None)))
+    for f in list_folders():
+        for t in list_topics(f):
+            out.append((f, t, topic_path(t, f)))
+    return out
+
+
 def list_folders() -> list[str]:
     """Return sorted folder names (subdirectories of vault, excluding hidden/_*)."""
     d = vault_dir()

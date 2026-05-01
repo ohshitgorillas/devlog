@@ -28,7 +28,7 @@ from .store import (
     write_lines,
     write_lock,
 )
-from .topics import validate_topic
+from .topics import iter_all_topic_paths, validate_topic
 
 
 def _label(folder: str | None, topic: str) -> str:
@@ -297,7 +297,9 @@ def cmd_retitle(
     old_title: str,
     new_title: str,
 ) -> None:
-    """Rename an entry in place, preserving date and time."""
+    """Rename an entry in place, preserving date and time. Also rewrites
+    inbound ``[[...]]`` links across the vault so cross-references don't rot.
+    """
     validate_topic(folder, topic)
     date = parse_date_arg(date_arg)
     path = topic_path(topic, folder)
@@ -310,8 +312,64 @@ def cmd_retitle(
         ts = f" {entry.time}" if entry.time else ""
         lines[entry.start] = f"## {entry.date}{ts} — {new_title}\n"
         write_lines(path, lines)
-        git_snapshot(f"retitle: [{label}] {old_title} -> {new_title}")
-    print(f"Retitled: [{label}] {old_title} -> {new_title}")
+        link_count, file_count = _rewrite_inbound_links(
+            folder, topic, date, old_title, new_title
+        )
+        link_word = "link" if link_count == 1 else "links"
+        topic_word = "topic" if file_count == 1 else "topics"
+        suffix = (
+            f" ({link_count} {link_word} in {file_count} {topic_word})"
+            if link_count
+            else ""
+        )
+        git_snapshot(f"retitle: [{label}] {old_title} -> {new_title}{suffix}")
+    print(f"Retitled: [{label}] {old_title} -> {new_title}{suffix}")
+
+
+def _rewrite_inbound_links(
+    folder: str | None,
+    topic: str,
+    date: str,
+    old_title: str,
+    new_title: str,
+) -> tuple[int, int]:
+    """Swap title in every ``[[...#date [time] — old_title]]`` across the vault.
+
+    Bare ``[[Topic#...]]`` matches only rewrite in files within the same folder
+    as the retitled topic (bare references resolve folder-locally).
+    Folder-qualified ``[[Folder:Topic#...]]`` matches rewrite vault-wide.
+    """
+    date_re = re.escape(date)
+    title_re = re.escape(old_title)
+    qualified_head = f"{folder}:{topic}" if folder else topic
+    qualified_pat = re.compile(
+        rf"\[\[{re.escape(qualified_head)}#({date_re}(?: \d{{2}}:\d{{2}})?) — {title_re}\]\]"
+    )
+    bare_pat = re.compile(
+        rf"\[\[{re.escape(topic)}#({date_re}(?: \d{{2}}:\d{{2}})?) — {title_re}\]\]"
+    )
+    qualified_repl = rf"[[{qualified_head}#\1 — {new_title}]]"
+    bare_repl = rf"[[{topic}#\1 — {new_title}]]"
+
+    total_links = 0
+    files_touched = 0
+    for f, _t, abs_path in iter_all_topic_paths():
+        try:
+            with open(abs_path, encoding="utf-8") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        new_text, q_count = qualified_pat.subn(qualified_repl, text)
+        b_count = 0
+        if f == folder:
+            new_text, b_count = bare_pat.subn(bare_repl, new_text)
+        delta = q_count + b_count
+        if delta == 0:
+            continue
+        write_lines(abs_path, new_text.splitlines(keepends=True))
+        total_links += delta
+        files_touched += 1
+    return total_links, files_touched
 
 
 def cmd_rm(
