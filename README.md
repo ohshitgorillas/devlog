@@ -31,7 +31,15 @@ Encryption. Bring your own, or avoid entering sensitive data.
 
 ## Install
 
-A regular Python package. From a clone of this repo:
+From PyPI:
+
+```sh
+pipx install tephra        # recommended (isolated venv, on PATH)
+# or
+pip install --user tephra
+```
+
+From a clone of this repo (editable, for hacking on tephra itself):
 
 ```sh
 python -m venv ~/.local/share/tephra-venv
