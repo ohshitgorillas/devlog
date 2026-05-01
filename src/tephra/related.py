@@ -15,12 +15,12 @@ from .store import (
 )
 from .topics import list_topics
 
-_ANCHOR_PAT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?: \((\d{2}:\d{2})\))? — (.+)$")
+_ANCHOR_PAT = re.compile(r"^(\d{4}-\d{2}-\d{2})(?: \(?(\d{2}:\d{2})\)?)? — (.+)$")
 
 
 def format_anchor(date: str, time: str | None, title: str) -> str:
     """Return the heading anchor text for a (date, time, title) triple."""
-    ts = f" ({time})" if time else ""
+    ts = f" {time}" if time else ""
     return f"{date}{ts} — {title}"
 
 
@@ -59,7 +59,7 @@ def parse_link_arg(arg: str) -> tuple[str | None, str, str, str | None, str]:
     if not m:
         sys.exit(
             f"Invalid related ref '{arg}': anchor must be "
-            f"'YYYY-MM-DD [(HH:MM)] — Title'"
+            f"'YYYY-MM-DD [HH:MM] — Title'"
         )
     return folder, topic, m.group(1), m.group(2), m.group(3)
 

@@ -13,7 +13,9 @@ import time
 from dataclasses import dataclass
 from typing import Iterator
 
-ENTRY_PAT = re.compile(r"^## (\d{4}-\d{2}-\d{2})(?: \((\d{2}:\d{2})\))? — (.+?)\s*$")
+ENTRY_PAT = re.compile(
+    r"^## (\d{4}-\d{2}-\d{2})(?: \(?(\d{2}:\d{2})\)?)? — (.+?)\s*$"
+)
 H1_PAT = re.compile(r"^# (.+?)\s*$")
 RELATED_PAT = re.compile(r"^\*\*Related:\*\*\s*(.+?)\s*$")
 _FENCE_PAT = re.compile(r"^(?:```|~~~)")

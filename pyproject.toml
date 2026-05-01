@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tephra"
-version = "2.4.0"
+version = "2.4.1"
 description = "Topic-based markdown journal CLI for Obsidian-style vaults"
 requires-python = ">=3.9"
 license = "MIT"

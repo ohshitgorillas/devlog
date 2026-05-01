@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.1] - 2026-04-30
+
+### Changed
+
+- Heading time format: drop parentheses around the time. New form: `## YYYY-MM-DD HH:MM — Title` (was `## YYYY-MM-DD (HH:MM) — Title`). Parser remains backwards-compatible — existing entries and `[[Topic#anchor]]` wikilinks with parens continue to read and resolve. New writes (add/amend/addend/retitle) emit the no-paren form. Vault rewrite is a one-shot manual sed; tephra does not auto-migrate existing files.
+
 ## [2.4.0] - 2026-04-30
 
 ### Added

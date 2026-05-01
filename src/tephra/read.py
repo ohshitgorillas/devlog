@@ -107,7 +107,7 @@ def _entry_dict(h: HydratedEntry) -> dict:
 
 
 def _print_entry(h: HydratedEntry) -> None:
-    ts = f" ({h.entry.time})" if h.entry.time else ""
+    ts = f" {h.entry.time}" if h.entry.time else ""
     print(f"[{_entry_label(h)}] ## {h.entry.date}{ts} — {h.entry.title}")
     text = "".join(h.body).rstrip()
     if text:
@@ -211,7 +211,7 @@ def cmd_list(folder: str | None, topic: str | None, json_out: bool) -> None:
         print("No entries")
         return
     for h in entries:
-        ts = f" ({h.entry.time})" if h.entry.time else ""
+        ts = f" {h.entry.time}" if h.entry.time else ""
         print(f"[{_entry_label(h)}] {h.entry.date}{ts} — {h.entry.title}")
 
 

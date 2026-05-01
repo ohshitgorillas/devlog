@@ -9,7 +9,7 @@ description: >
   locking, and per-write git auto-commits.
 ---
 
-Tool for keeping a topic-organized development journal as Obsidian-style markdown. Each topic is a single file (`Topic.md`); files may live in the vault root or in a folder (`<vault>/<Folder>/<Topic>.md`). Entries are H2 sections (`## YYYY-MM-DD (HH:MM) — Title`) sorted newest-first. Every CLI write auto-commits to the vault git repo. Direct edits in the Obsidian GUI are auto-captured to git on next CLI invocation.
+Tool for keeping a topic-organized development journal as Obsidian-style markdown. Each topic is a single file (`Topic.md`); files may live in the vault root or in a folder (`<vault>/<Folder>/<Topic>.md`). Entries are H2 sections (`## YYYY-MM-DD HH:MM — Title`) sorted newest-first. Every CLI write auto-commits to the vault git repo. Direct edits in the Obsidian GUI are auto-captured to git on next CLI invocation.
 
 ## When and what to log
 
@@ -25,7 +25,7 @@ Tool for keeping a topic-organized development journal as Obsidian-style markdow
 - Backticks for paths, commands, identifiers. HTML-tag-looking tokens (`<name>`, `<HOST>`) are auto-backticked on insert.
 - Match existing entries in the same topic — check `tephra last -T TOPIC` or `tephra recent 3 -T TOPIC` first.
 - No marketing voice. No "successfully". No restating the title.
-- Always cross-link related prior entries with `--related`. Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra recent 14 -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [(HH:MM)] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
+- Always cross-link related prior entries with `--related`. Before writing a new entry, run `tephra find TERM` for the subsystem(s) the change touches and `tephra recent 14 -T <other-topics>` for adjacent topics. Pass each relevant prior entry as `--related "Topic#YYYY-MM-DD [HH:MM] — Title"`. The flag is repeatable. Cross-links are how the journal stays navigable as it grows; an unlinked entry is invisible to future searches that start from a related entry. Default to over-linking when in doubt — the validator will reject anything that doesn't exist.
 
 ### When to add a related link
 
@@ -76,7 +76,7 @@ tephra add -T O11y -t "Title" -e "body" \
   --related "Bittorrent#2026-04-24 — peer port metric"
 ```
 
-`--related` is repeatable. Anchor format: `Topic#YYYY-MM-DD [(HH:MM)] — Title`. Refs are validated against the target topic file (exact match required).
+`--related` is repeatable. Anchor format: `Topic#YYYY-MM-DD [HH:MM] — Title`. Refs are validated against the target topic file (exact match required).
 
 ## Topic management
 

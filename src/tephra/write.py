@@ -88,7 +88,7 @@ def _build_block(
     related_line: str | None,
 ) -> list[str]:
     """Build the lines for a new entry, ready to splice into a topic file."""
-    out: list[str] = [f"## {date} ({time}) — {title}\n", "\n"]
+    out: list[str] = [f"## {date} {time} — {title}\n", "\n"]
     body = auto_backtick_html_tags(body).strip("\n")
     if body:
         for line in body.splitlines():
@@ -307,7 +307,7 @@ def cmd_retitle(
         entry = find_entry(topic, lines, date, old_title)
         if entry is None:
             sys.exit(f"No entry '{old_title}' on {date} in topic '{label}'")
-        ts = f" ({entry.time})" if entry.time else ""
+        ts = f" {entry.time}" if entry.time else ""
         lines[entry.start] = f"## {entry.date}{ts} — {new_title}\n"
         write_lines(path, lines)
         git_snapshot(f"retitle: [{label}] {old_title} -> {new_title}")

@@ -1,6 +1,6 @@
 # tephra
 
-A small CLI for keeping a topic-organized development log as a directory of Markdown files. Each topic is its own file (`Topic.md`), with entries organized as `## YYYY-MM-DD (HH:MM) — Title` headings sorted newest-first. Every CLI write auto-commits to a private git repo in the vault directory, so nothing is lost and bad writes can be reverted.
+A small CLI for keeping a topic-organized development log as a directory of Markdown files. Each topic is its own file (`Topic.md`), with entries organized as `## YYYY-MM-DD HH:MM — Title` headings sorted newest-first. Every CLI write auto-commits to a private git repo in the vault directory, so nothing is lost and bad writes can be reverted.
 
 The format is hand-editable in any text editor and renders cleanly in [Obsidian](https://obsidian.md/), where wikilinks (`[[Topic#anchor]]`) double as cross-references between entries.
 
@@ -146,13 +146,13 @@ Each topic file looks like:
 ```markdown
 # Topic1
 
-## 2026-04-28 (14:32) — newer entry
+## 2026-04-28 14:32 — newer entry
 
 Body.
 
 **Related:** [[Topic2#2026-04-27 — earlier entry]]
 
-## 2026-04-27 (09:15) — older entry
+## 2026-04-27 09:15 — older entry
 
 Body.
 ```

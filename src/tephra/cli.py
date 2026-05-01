@@ -91,7 +91,7 @@ def _add_write_subparsers(sub: argparse._SubParsersAction) -> None:
         action="append",
         default=[],
         metavar="REF",
-        help="cross-link: 'Topic#YYYY-MM-DD [(HH:MM)] — Title' (repeatable)",
+        help="cross-link: 'Topic#YYYY-MM-DD [HH:MM] — Title' (repeatable)",
     )
 
     p_amend = sub.add_parser(
