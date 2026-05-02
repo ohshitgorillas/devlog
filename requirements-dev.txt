@@ -3,3 +3,4 @@ mypy
 pylint
 radon
 xenon
+pytest
